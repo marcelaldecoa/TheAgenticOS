@@ -1,0 +1,33 @@
+﻿[book]
+title = "The Agentic OS"
+description = "A Pattern Language for Intent, Memory, and Action"
+authors = ["Marcel Aldecoa"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[output.html]
+default-theme = "navy"
+preferred-dark-theme = "navy"
+smart-punctuation = true
+no-section-label = false
+git-repository-url = "https://github.com/marcelaldecoa/TheAgenticOS"
+edit-url-template = "https://github.com/marcelaldecoa/TheAgenticOS/edit/main/{path}"
+additional-css = ["theme/custom.css"]
+additional-js = ["theme/zoom.js"]
+
+[output.html.print]
+enable = true
+
+[output.html.fold]
+enable = true
+level = 0
+
+[output.html.search]
+enable = true
+limit-results = 20
+boost-title = 2
+boost-hierarchy = 2
