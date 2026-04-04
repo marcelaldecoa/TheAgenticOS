@@ -66,6 +66,7 @@
 - [Support OS](./part-6-case-studies/32-support-os.md)
 - [Knowledge OS](./part-6-case-studies/33-knowledge-os.md)
 - [Multi-OS Coordination](./part-6-case-studies/34-multi-os-coordination.md)
+- [GitHub Copilot and Claude Code as Agentic Operating Systems](./part-6-case-studies/35-copilot-and-claude-code.md)
 
 ---
 
