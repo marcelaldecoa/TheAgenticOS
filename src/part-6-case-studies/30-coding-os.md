@@ -634,3 +634,7 @@ MCP servers provide tool isolation. Connect agents to MCP tools via Semantic Ker
 ```
 
 This implementation demonstrates the core patterns: the **kernel** (SK orchestration with Sequential and GroupChat patterns), **workers** (`ChatCompletionAgent` subagents with scoped plugins), **plugins** (`@kernel_function` decorated methods as operators), **skills** (packaged instructions and strategies), and **governance** (SK function filters for capability checks, budget enforcement, and audit logging).
+
+---
+
+> **Try it yourself**: The complete Coding OS — agents, skills, instructions, MCP config, and a sample To-Do API project with a hands-on tutorial — is available at [`implementations/coding-os/`](https://github.com/marcelaldecoa/TheAgenticOS/tree/main/implementations/coding-os). Copy the `.github/` folder into your project and start using `@coder`, `@tester`, `@reviewer`, `/fix-bug`, and `/new-feature` immediately.

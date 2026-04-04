@@ -42,3 +42,6 @@ description: "Fix a bug in the codebase. Use when debugging, diagnosing failures
 - Fixing symptoms instead of root cause
 - Making large refactors alongside a bug fix
 - Skipping the reproduction step
+
+## Resources
+- [Bug report template](./references/bug-report-template.md) — use when documenting the fix

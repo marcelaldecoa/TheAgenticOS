@@ -349,3 +349,7 @@ async def handle_support_ticket(ticket_message: str) -> str:
 
 Key patterns demonstrated: **handoff orchestration** (dynamic routing between triage/resolver/investigator), **plugins with data governance** (customer PII scoped out of responses), **capability separation** (resolver can execute fixes, investigator can search logs, communicator only writes text), and **semantic search over known issues** (vector store as episodic memory).
 
+---
+
+> **Try it yourself**: The complete Support OS — agents (`@triage`, `@resolver`, `@investigator`, `@communicator`), skills (`/triage-and-resolve`, `/escalation`), escalation templates, and tutorial — is available at [`implementations/support-os/`](https://github.com/marcelaldecoa/TheAgenticOS/tree/main/implementations/support-os).
+
