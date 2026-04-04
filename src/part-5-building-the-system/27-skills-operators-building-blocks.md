@@ -21,20 +21,21 @@ A skill consists of:
 
 Skills are registered in the system's skill registry, which the kernel queries to match capabilities to tasks:
 
-```text
-skill:
-  name: "python-backend"
-  description: "Develop Python backend services."
-  domains: [code, python, backend]
-  tools: [file_read, file_write, python_exec, pytest, pip]
-  instructions: |
-    Follow PEP 8. Use type hints. Write tests for all public functions.
-    Prefer composition over inheritance. Handle errors explicitly.
-  strategies:
-    - name: "new-endpoint"
-      steps: [define route, implement handler, add validation, write tests, update docs]
-    - name: "fix-bug"
-      steps: [reproduce, identify root cause, write failing test, fix, verify]
+```mermaid
+flowchart TD
+  subgraph Skill["Skill: python-backend"]
+    direction TB
+    Desc["Develop Python backend services"]
+    Domains["Domains: code, python, backend"]
+    Tools["Tools: file_read, file_write,\npython_exec, pytest, pip"]
+    Inst["Instructions: PEP 8, type hints,\ntests for public functions"]
+    subgraph Strategies
+      NE["new-endpoint:\ndefine route \u2192 implement \u2192\nvalidate \u2192 test \u2192 docs"]
+      FB["fix-bug:\nreproduce \u2192 root cause \u2192\nfailing test \u2192 fix \u2192 verify"]
+    end
+  end
+  K[Kernel] -->|queries| Registry[(Skill Registry)]
+  Registry --> Skill
 ```
 
 ### Skill Composition

@@ -33,24 +33,20 @@ The federation bus is the communication layer between operating systems. It carr
 
 Inter-OS messages use a standard format:
 
-```text
-Message:
-  from: support-os
-  to: coding-os
-  type: work_request
-  priority: high
-  payload:
-    intent: "Investigate and fix CSV export corruption"
-    context:
-      customer_report: "..."
-      reproduction_steps: "..."
-      affected_versions: ["3.2.0"]
-    constraints:
-      data_classification: "customer_data_redacted"
-      time_expectation: "urgent"
-    callback:
-      on_status_change: "support-os/cases/4521/status"
-      on_completion: "support-os/cases/4521/resolution"
+```mermaid
+flowchart LR
+  subgraph Message
+    direction TB
+    Header["from: support-os \u2192 to: coding-os\ntype: work_request \u00b7 priority: high"]
+    subgraph Payload
+      Intent["Intent: Investigate and fix\nCSV export corruption"]
+      Context["Context: customer_report,\nreproduction_steps,\naffected_versions: 3.2.0"]
+      Constraints["Constraints:\ndata: customer_data_redacted\nurgency: urgent"]
+    end
+    Callback["Callbacks:\non_status_change \u2192 support-os/cases/4521/status\non_completion \u2192 support-os/cases/4521/resolution"]
+  end
+  SOS[Support OS] -->|sends| Message
+  Message -->|received by| COS[Coding OS]
 ```
 
 The message carries enough context for the receiving OS to act without knowing the sender's internal state. It specifies constraints (data classification, urgency) that map to the receiver's governance policies. And it includes callbacks so the sender is notified of progress.
@@ -59,19 +55,23 @@ The message carries enough context for the receiving OS to act without knowing t
 
 Before OS A can send work to OS B, it must know what OS B can do. Capability discovery operates through a registry:
 
-```text
-Registry:
-  coding-os:
-    capabilities: [bug_investigation, feature_development, code_review, deployment]
-    accepts: [work_request, information_request]
-    SLA: { bug_investigation: "4 hours", feature_development: "1-5 days" }
-    governance: { data_classification: "up to confidential", approval_required: "for production changes" }
-  
-  knowledge-os:
-    capabilities: [documentation_update, knowledge_retrieval, knowledge_validation]
-    accepts: [knowledge_event, query]
-    SLA: { documentation_update: "1 hour", knowledge_retrieval: "seconds" }
-    governance: { data_classification: "up to internal" }
+```mermaid
+flowchart TD
+  subgraph Registry["OS Capability Registry"]
+    subgraph COS["coding-os"]
+      CC["Capabilities: bug investigation,\nfeature development, code review, deployment"]
+      CA["Accepts: work_request, information_request"]
+      CS["SLA: bugs 4h, features 1-5d"]
+      CG["Governance: up to confidential,\napproval for production"]
+    end
+    subgraph KOS["knowledge-os"]
+      KC["Capabilities: doc update,\nknowledge retrieval, validation"]
+      KA["Accepts: knowledge_event, query"]
+      KS["SLA: docs 1h, retrieval seconds"]
+      KG["Governance: up to internal"]
+    end
+  end
+  OS_A[Requesting OS] -->|discover| Registry
 ```
 
 Each OS publishes its capabilities, accepted message types, service level expectations, and governance constraints. Senders can discover what is available, what it costs, and what rules apply — without knowing the receiver's internal architecture.
@@ -166,12 +166,23 @@ The audit trail must span OS boundaries. When the Support OS triggers a bug fix 
 
 Each OS maintains its internal audit log. The federation layer maintains a cross-OS correlation ID that links related entries across logs:
 
-```text
-Correlation ID: fed-2026-04-03-4521
-  Support OS: Case opened, escalated to engineering [timestamp]
-  Coding OS: Investigation started, bug found, fix deployed [timestamps]
-  Knowledge OS: Documentation updated, known issue added [timestamp]
-  Support OS: Customer notified, case closed [timestamp]
+```mermaid
+sequenceDiagram
+  participant SOS as Support OS
+  participant COS as Coding OS
+  participant KOS as Knowledge OS
+  Note over SOS,KOS: Correlation ID: fed-2026-04-03-4521
+  SOS->>SOS: Case opened
+  SOS->>COS: Escalate to engineering
+  COS->>COS: Investigation started
+  COS->>COS: Bug found
+  COS->>COS: Fix deployed
+  COS->>KOS: Document known issue
+  KOS->>KOS: Documentation updated
+  KOS->>KOS: Known issue added
+  COS-->>SOS: Resolution delivered
+  SOS->>SOS: Customer notified
+  SOS->>SOS: Case closed
 ```
 
 ### Cross-OS Authorization

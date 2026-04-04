@@ -1,6 +1,6 @@
 ﻿# The Agentic OS
 
-**A Pattern Language for Intent, Memory, and Action**
+**An Operating System Model for Governed Agency**
 
 > *The next abstraction in software is not the agent. It is the operating system around agency.*
 

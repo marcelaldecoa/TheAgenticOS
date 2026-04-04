@@ -62,6 +62,27 @@ flowchart LR
 
 This is not a metaphor. It is a structural correspondence. The problems are isomorphic. The abstractions that solved them for computing solve them for agency.
 
+## Where the Analogy Breaks — and Why That Matters
+
+The correspondence above is structural, but not complete. There is one fundamental difference between a traditional OS and an Agentic OS, and acknowledging it honestly is essential to building systems that work.
+
+A traditional OS governs a **deterministic substrate**. Given the same instructions and state, the CPU produces the same result every time. Memory reads return exactly what was written. I/O follows defined protocols. The kernel can make scheduling and isolation decisions with confidence because the underlying hardware is regular and predictable.
+
+An Agentic OS governs a **stochastic substrate**. The same prompt may produce different outputs across invocations. Model behavior varies with temperature, context ordering, version changes, and quantization. Tools have variable latency and failure modes. The "processor" at the heart of the system — the language model — is fundamentally nondeterministic.
+
+This changes what governance means. In a traditional OS, the kernel enforces rules and the hardware obeys. In an Agentic OS, the kernel enforces rules and the model *mostly* complies — but may hallucinate, drift, or produce unexpected outputs despite correct instructions. Governance here is not about controlling a reliable machine. It is about **containing an unreliable one**.
+
+This is why the analogy must be *extended*, not merely copied:
+
+- **Scheduling** cannot assume deterministic completion times. Task planning must be adaptive, with timeouts calibrated to observed latency distributions rather than fixed deadlines.
+- **Isolation** is not just about preventing resource conflicts — it prevents *correlated failures*, where one model hallucination cascades through shared state into other workers.
+- **Permissions** are necessary but insufficient. A traditional process that has write access will write what it is told. An agent with write access may write something no one asked for. Governance must therefore validate **outputs**, not just authorize **actions**.
+- **Memory** is not just an optimization concern. Because the model's behavior is context-dependent and context itself is noisy, memory discipline — what enters working memory, what is compressed, what is evicted — directly affects the *reliability* of the system, not just its efficiency.
+
+The Agentic OS responds to this reality with structures that have no counterpart in traditional operating systems: continuous policy evaluation (not one-time authorization), plan-act-check-adapt loops (not execute-and-return), reflective retry (not blind retry), and staged autonomy (trust earned through observed behavior, not declared in advance). These are not embellishments on the OS model. They are the necessary extensions that make the model work when the substrate is stochastic.
+
+The OS analogy holds — but it holds because we *extend* it to account for nondeterminism, not because we pretend nondeterminism does not exist.
+
 ## What OS Abstractions Give Us
 
 ### Isolation

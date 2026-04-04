@@ -26,18 +26,39 @@ The kernel — intent routing, planning, decomposition, scheduling — maps to *
 
 **The kernel loop** (perceive → interpret → plan → delegate → monitor → consolidate → adapt) maps to orchestration patterns. In Semantic Kernel, the orchestration type determines the coordination model:
 
-```text
-Agentic OS Concept    →  Semantic Kernel Implementation
-───────────────────────────────────────────────────────
-Intent Router         →  Agent with routing logic or HandoffOrchestration
-Planner               →  Agent with planning instructions
-Workers               →  ChatCompletionAgent instances with scoped plugins
-Pipeline              →  SequentialOrchestration
-Fan-Out/Fan-In        →  ConcurrentOrchestration
-Adversarial Review    →  GroupChatOrchestration
-Dynamic Routing       →  HandoffOrchestration
-Tools/Operators       →  Plugins (@kernel_function) and MCP servers
-Governance            →  Function filters (on_function_invocation)
+```mermaid
+flowchart LR
+  subgraph AOS["Agentic OS Concept"]
+    IR[Intent Router]
+    PL[Planner]
+    WK[Workers]
+    Pipe[Pipeline]
+    Fan[Fan-Out / Fan-In]
+    AR[Adversarial Review]
+    DR[Dynamic Routing]
+    TO[Tools / Operators]
+    GV[Governance]
+  end
+  subgraph SK["Semantic Kernel"]
+    HO[HandoffOrchestration]
+    PA[Agent with planning instructions]
+    CCA[ChatCompletionAgent + scoped plugins]
+    SO[SequentialOrchestration]
+    CO[ConcurrentOrchestration]
+    GCO[GroupChatOrchestration]
+    HO2[HandoffOrchestration]
+    PLG["Plugins (@kernel_function) + MCP"]
+    FF["Function filters (on_function_invocation)"]
+  end
+  IR --> HO
+  PL --> PA
+  WK --> CCA
+  Pipe --> SO
+  Fan --> CO
+  AR --> GCO
+  DR --> HO2
+  TO --> PLG
+  GV --> FF
 ```
 
 ## Process Fabric

@@ -64,3 +64,19 @@ The kernel is **not** the language model. The language model is a resource the k
 - **Make planning explicit.** Plans should be inspectable data structures, not implicit chains of thought.
 - **Evaluate policy continuously.** Do not check permissions once at the start. Check at each decision point.
 - **Support plan adaptation.** The initial plan is a hypothesis. Workers may discover information that changes everything. The kernel must be able to revise, extend, or abandon the plan.
+
+## Governing What You Cannot Predict
+
+A traditional OS kernel issues instructions to a CPU and gets deterministic results. The cognitive kernel has no such guarantee. The language model at the center of the system is stochastic: the same input may produce different outputs, quality varies across invocations, and failure modes are difficult to anticipate. This is the hardest structural problem in agentic system design.
+
+The cognitive kernel addresses this through four mechanisms:
+
+**1. Treating every output as a hypothesis.** The kernel does not trust the first result from a model or a worker. It validates outputs against success criteria, checks for internal consistency, and compares results against known constraints. The consolidation phase of the kernel loop is not a formality — it is the primary quality gate.
+
+**2. Making uncertainty visible.** Where a traditional kernel tracks process state (running, ready, blocked), the cognitive kernel also tracks **confidence** — how reliable was this result? Was it validated? Did it require retries? This metadata flows through the system so that downstream decisions can account for upstream uncertainty. A plan built on high-confidence inputs can proceed autonomously; one built on low-confidence inputs triggers additional validation or human review.
+
+**3. Designing for variance, not just errors.** Traditional error handling distinguishes success from failure. The cognitive kernel must handle a third category: *plausible but wrong*. A model may return well-formatted, syntactically valid output that is factually incorrect or subtly misaligned with the goal. The kernel loop's check phase must evaluate not just "did it complete?" but "does the result actually satisfy the intent?" This requires richer validation — semantic checks, cross-referencing, and sometimes redundant execution with comparison.
+
+**4. Earning trust incrementally.** The kernel does not grant workers or models a fixed level of trust. It calibrates autonomy based on observed performance. A worker that consistently produces validated results earns broader delegation. One that produces inconsistent results gets tighter oversight, smaller tasks, or a different model. This is staged autonomy applied at the kernel level — the kernel adapts its own coordination strategy based on the empirical reliability of the components it orchestrates.
+
+These mechanisms are not defensive measures bolted onto an otherwise clean design. They are the core of what makes the cognitive kernel different from a traditional OS kernel. The substrate is nondeterministic, so the coordinator must be adaptive. Every plan is a hypothesis. Every output is provisional. Every cycle of the kernel loop is an opportunity to detect divergence, correct course, and maintain coherence in a system that cannot guarantee deterministic behavior from its most fundamental component.

@@ -10,9 +10,9 @@ Understanding performance in an agentic system requires understanding where reso
 
 The dominant cost in most agentic systems is language model invocations. Each call consumes input tokens (context) and output tokens (response). The cost equation:
 
-```text
-Total cost = Σ (input_tokens × input_price + output_tokens × output_price)
-```
+$$
+\text{Total cost} = \sum (\text{input\_tokens} \times \text{input\_price} + \text{output\_tokens} \times \text{output\_price})
+$$
 
 For a task that involves planning (one call), decomposition (one call), five workers (five calls each for execution and checking), and consolidation (one call), you might be looking at 13+ model calls. If each call uses 10,000 input tokens and 2,000 output tokens, that is 130,000 input tokens and 26,000 output tokens. At current prices, this is dollars, not cents.
 

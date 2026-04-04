@@ -83,11 +83,15 @@ Memory is shared infrastructure, but access must be scoped.
 
 All memory access goes through a unified API:
 
-```text
-store(content, tier, scope, metadata) → memory_id
-retrieve(query, tier, scope, filters) → [results]
-update(memory_id, content) → void
-forget(memory_id) → void
+```mermaid
+flowchart LR
+  W[Worker] --> API[Memory API]
+  API -->|"store(content, tier, scope, metadata)"| DB[(Storage)]
+  API -->|"retrieve(query, tier, scope, filters)"| DB
+  API -->|"update(memory_id, content)"| DB
+  API -->|"forget(memory_id)"| DB
+  DB -->|memory_id / results| API
+  API --> W
 ```
 
 Workers never access the underlying storage directly. This abstraction allows the memory system to change its implementation — switching from a local vector database to a distributed one, for example — without affecting any worker.

@@ -14,15 +14,20 @@ We call it a "plane" because it exists in a different dimension than the vertica
 
 Inspired by capability-based security in operating systems, each agent or worker receives an explicit set of capabilities — tokens that grant specific, scoped permissions.
 
-```text
-Worker: code-reviewer
-  Capabilities:
-    - file.read(scope: src/**)
-    - git.diff(scope: current-branch)
-    - comment.create(scope: pull-request)
-    ✗ file.write
-    ✗ git.push
-    ✗ deploy.*
+```mermaid
+flowchart LR
+  subgraph Granted["\u2713 Granted"]
+    R["file.read\nscope: src/**"]
+    D["git.diff\nscope: current-branch"]
+    C["comment.create\nscope: pull-request"]
+  end
+  subgraph Denied["\u2717 Denied"]
+    W["file.write"]
+    P["git.push"]
+    Dep["deploy.*"]
+  end
+  Worker["Worker: code-reviewer"] --> Granted
+  Worker -.->|blocked| Denied
 ```
 
 Capabilities are granted, not assumed. No agent starts with full access.

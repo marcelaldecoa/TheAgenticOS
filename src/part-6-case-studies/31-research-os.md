@@ -116,15 +116,22 @@ The critical discipline: scouts do not evaluate. They collect. Evaluation is the
 
 Analysts read each source carefully and extract structured information:
 
-```text
-Source: Competitor A Pricing Page (accessed 2026-04-01)
-Claims:
-  - Three tiers: Free, Pro ($29/mo), Enterprise (custom)
-  - Free tier limited to 3 users
-  - Pro includes API access
-  - Enterprise requires annual commitment
-Confidence: High (primary source)
-Limitations: Does not show negotiated enterprise pricing
+```mermaid
+flowchart TD
+  subgraph Extraction["Source Analysis"]
+    direction TB
+    Src["Source: Competitor A Pricing Page\n(accessed 2026-04-01)"]
+    subgraph Claims
+      C1["Three tiers: Free, Pro $29/mo, Enterprise custom"]
+      C2["Free tier limited to 3 users"]
+      C3["Pro includes API access"]
+      C4["Enterprise requires annual commitment"]
+    end
+    Conf["Confidence: High\n(primary source)"]
+    Lim["Limitations: Does not show\nnegotiated enterprise pricing"]
+  end
+  Analyst[Analyst Agent] -->|reads & extracts| Extraction
+  Extraction -->|structured output| Synth[Synthesizer]
 ```
 
 Each analyst works independently with focused context — they see only the sources relevant to their assigned competitor.

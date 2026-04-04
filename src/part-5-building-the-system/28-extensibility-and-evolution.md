@@ -24,16 +24,23 @@ The reference architecture provides extension points at every layer:
 
 Adding a new language model should require nothing more than implementing the provider interface:
 
-```text
-Provider:
-  name: "new-model-provider"
-  models:
-    - name: "model-x"
-      capabilities: [reasoning, generation, code]
-      context_window: 200000
-      cost_per_token: 0.003
-  interface:
-    request(prompt, constraints) → response
+```mermaid
+classDiagram
+  class ModelProvider {
+    +name: string
+    +request(prompt, constraints) response
+  }
+  class Model {
+    +name: string
+    +capabilities: string[]
+    +context_window: int
+    +cost_per_token: float
+  }
+  ModelProvider --> "1..*" Model : provides
+  class Kernel {
+    +selectProvider(requirements)
+  }
+  Kernel --> ModelProvider : uses
 ```
 
 The kernel does not know or care which model is running. It knows what capabilities it needs and what budget it has. The model provider layer handles the rest.
@@ -42,16 +49,27 @@ The kernel does not know or care which model is running. It knows what capabilit
 
 New tools plug into the tool registry:
 
-```text
-Tool:
-  name: "jira-integration"
-  description: "Create, update, and query Jira issues."
-  operations:
-    - create_issue(project, type, summary, description) → issue_key
-    - update_issue(issue_key, fields) → void
-    - search_issues(query) → [issues]
-  risk_level: medium
-  requires: [network, jira_credentials]
+```mermaid
+classDiagram
+  class Tool {
+    +name: string
+    +description: string
+    +risk_level: string
+    +requires: string[]
+  }
+  class JiraIntegration {
+    +create_issue(project, type, summary, desc) issue_key
+    +update_issue(issue_key, fields) void
+    +search_issues(query) issues[]
+    +risk_level: medium
+    +requires: network, jira_credentials
+  }
+  Tool <|-- JiraIntegration
+  class ToolRegistry {
+    +register(tool) void
+    +discover(capability) tool[]
+  }
+  ToolRegistry --> "*" Tool
 ```
 
 Once registered, the tool is immediately available to workers whose sandboxes grant access to it. No kernel changes, no process fabric changes, no redeployment of the core system.
@@ -64,13 +82,15 @@ New skills are packages installed into the skill registry. They bring their own 
 
 New governance policies are added to the policy engine:
 
-```text
-Policy:
-  name: "no-external-api-unencrypted"
-  scope: all_workers
-  condition: "tool.type == 'http_client' AND NOT tool.config.tls"
-  action: deny
-  message: "All external API calls must use TLS."
+```mermaid
+flowchart LR
+  Act[Worker Action] --> PE[Policy Engine]
+  PE --> P1["Existing Policies"]
+  PE --> P2["New Policy:\nno-external-api-unencrypted"]
+  P2 --> Cond{"tool.type == http_client\nAND NOT tls?"}
+  Cond -->|Yes| Deny["Deny + message:\nAll external API calls must use TLS"]
+  Cond -->|No| Allow[Allow]
+  P1 --> Allow
 ```
 
 Policies are additive. Adding a new policy does not require modifying existing ones. The policy engine evaluates all applicable policies for each action.

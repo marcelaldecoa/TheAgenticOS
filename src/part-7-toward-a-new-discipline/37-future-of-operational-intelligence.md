@@ -59,7 +59,7 @@ The trajectory points toward composable intelligence: a marketplace of interoper
 
 Imagine:
 
-```text
+```bash
 agentic-os init --template=coding-os
 agentic-os add skill python-backend
 agentic-os add skill react-frontend
