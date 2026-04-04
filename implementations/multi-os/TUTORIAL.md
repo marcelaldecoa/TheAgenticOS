@@ -1,4 +1,4 @@
-﻿# Tutorial: Multi-OS Coordination
+# Tutorial: Multi-OS Coordination
 
 This walkthrough demonstrates how to coordinate work across multiple Agentic OSs — routing tasks between Coding, Research, Support, and Knowledge systems with data governance at every boundary.
 

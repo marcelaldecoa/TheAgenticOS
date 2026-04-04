@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Support triage specialist. Use when classifying tickets, assessing urgency, checking for known issues, or routing support requests to the right handler."
 tools: [read, search]
 ---

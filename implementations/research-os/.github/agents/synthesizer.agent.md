@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Research synthesizer. Use when combining analyst findings, identifying patterns across sources, connecting evidence, building arguments, or producing structured summaries from multiple analyses."
 tools: [read]
 ---

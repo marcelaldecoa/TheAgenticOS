@@ -1,4 +1,3 @@
-﻿import pytest
 from src.todo import TodoStore
 
 
@@ -31,6 +30,33 @@ class TestTodoStore:
         self.store.add("Second")
         todos = self.store.list_all()
         assert len(todos) == 2
+
+    def test_list_all_empty_sort_string(self):
+        self.store.add("First")
+        self.store.add("Second")
+        todos = self.store.list_all(sort="")
+        assert len(todos) == 2
+
+    def test_list_all_invalid_sort_field(self):
+        self.store.add("First")
+        todos = self.store.list_all(sort="nonexistent")
+        assert len(todos) == 1
+
+    def test_filter_completed(self):
+        self.store.add("Done task")
+        self.store.complete(1)
+        self.store.add("Pending task")
+        result = self.store.list_all(status="completed")
+        assert len(result) == 1
+        assert result[0].completed is True
+
+    def test_filter_pending(self):
+        self.store.add("Done task")
+        self.store.complete(1)
+        self.store.add("Pending task")
+        result = self.store.list_all(status="pending")
+        assert len(result) == 1
+        assert result[0].completed is False
 
     def test_complete_todo(self):
         self.store.add("Finish report")

@@ -1,4 +1,4 @@
-﻿"""
+"""
 To-Do API — A simple task management application.
 Used as the sample project for the Coding OS tutorial.
 """
@@ -44,10 +44,14 @@ class TodoStore:
         """Get a to-do by ID."""
         return self._todos.get(todo_id)
 
-    def list_all(self, sort: str = "") -> list[Todo]:
-        """List all to-dos, optionally sorted by a field."""
+    def list_all(self, sort: str = "", status: str = "") -> list[Todo]:
+        """List all to-dos, optionally sorted by a field and filtered by status."""
         todos = list(self._todos.values())
-        if sort:
+        if status == "completed":
+            todos = [t for t in todos if t.completed]
+        elif status == "pending":
+            todos = [t for t in todos if not t.completed]
+        if sort and hasattr(Todo, sort):
             todos.sort(key=lambda t: getattr(t, sort))
         return todos
 

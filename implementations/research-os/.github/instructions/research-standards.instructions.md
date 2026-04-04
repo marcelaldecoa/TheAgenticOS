@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Use when producing research outputs, reports, or analysis documents. Enforces citation requirements, confidence calibration, and structured evidence presentation."
 applyTo: ["**/research/**", "**/reports/**", "**/analysis/**"]
 ---

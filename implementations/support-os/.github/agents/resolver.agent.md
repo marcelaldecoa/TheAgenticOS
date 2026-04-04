@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Support resolver. Use when applying known fixes, executing safe operations like cache invalidation or session reset, or resolving known issues."
 tools: [read, search, execute]
 ---

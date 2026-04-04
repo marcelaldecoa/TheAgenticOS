@@ -1,4 +1,4 @@
-﻿---
+---
 name: code-review
 description: "Perform a comprehensive code review. Use when reviewing PRs, assessing code quality, checking for security issues, or validating changes before merge."
 ---

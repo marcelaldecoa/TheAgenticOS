@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Research analyst. Use when deep-reading sources, extracting claims, evaluating evidence quality, or assessing methodology. Optimized for precision."
 tools: [web, read]
 ---

@@ -33,7 +33,7 @@ More configuration surface. Capability sets must be maintained and versioned.
 Over-permissive defaults defeat the pattern. Under-permissive defaults cause legitimate work to fail silently.
 
 ### Related Patterns
-Least Privilege Agent, Permission Gate, Operator Isolation
+[Least Privilege Agent](#least-privilege-agent), [Permission Gate](#permission-gate), [Operator Isolation](./16-operator-patterns.md#operator-isolation)
 
 ---
 
@@ -66,7 +66,7 @@ Initial development is slower. Workers may fail on edge cases that require unexp
 Workers that silently degrade rather than requesting escalation. Blanket escalation approvals that defeat the pattern.
 
 ### Related Patterns
-Capability-Based Access, Permission Gate, Human Escalation
+[Capability-Based Access](#capability-based-access), [Permission Gate](#permission-gate), [Human Escalation](#human-escalation)
 
 ---
 
@@ -109,7 +109,7 @@ Latency increases at gates. Approval fatigue can lead to rubber-stamping.
 Gates on trivial actions desensitize approvers. Missing gates on critical actions eliminate the safety net.
 
 ### Related Patterns
-Capability-Based Access, Human Escalation, Risk-Tiered Execution
+[Capability-Based Access](#capability-based-access), [Human Escalation](#human-escalation), [Risk-Tiered Execution](#risk-tiered-execution)
 
 ---
 
@@ -142,7 +142,7 @@ Requires responsive human operators. Escalation packaging consumes resources.
 Poor escalation packaging forces humans to reconstruct context. Unreachable humans block execution indefinitely.
 
 ### Related Patterns
-Permission Gate, Staged Autonomy, Risk-Tiered Execution
+[Permission Gate](#permission-gate), [Staged Autonomy](./18-runtime-patterns.md#staged-autonomy), [Risk-Tiered Execution](#risk-tiered-execution)
 
 ---
 
@@ -175,7 +175,7 @@ Storage costs. Performance overhead. Risk of logging sensitive data.
 Logging failures that silently drop records. Over-logging that makes meaningful patterns invisible.
 
 ### Related Patterns
-Execution Journal, Signed Intent, Checkpoints and Rollback
+[Execution Journal](./18-runtime-patterns.md#execution-journal), [Signed Intent](#signed-intent), [Checkpoints and Rollback](./18-runtime-patterns.md#checkpoints-and-rollback)
 
 ---
 
@@ -208,7 +208,7 @@ Signature management complexity. Performance cost of verification.
 Broken signature chains when sub-intents are reconstructed. Performance degradation from redundant verification.
 
 ### Related Patterns
-Auditable Action, Capability-Based Access
+[Auditable Action](#auditable-action), [Capability-Based Access](#capability-based-access)
 
 ---
 
@@ -254,7 +254,7 @@ Risk misclassification can under- or over-protect. Tier boundaries require ongoi
 Novel actions that don't fit existing tiers default to the wrong level. Tier inflation where everything becomes "critical."
 
 ### Related Patterns
-Permission Gate, Human Escalation, Staged Autonomy
+[Permission Gate](#permission-gate), [Human Escalation](#human-escalation), [Staged Autonomy](./18-runtime-patterns.md#staged-autonomy)
 
 ---
 

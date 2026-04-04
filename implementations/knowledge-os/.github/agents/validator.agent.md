@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Knowledge validator. Use when checking if knowledge is still accurate, finding stale documentation, verifying references, or assessing freshness of stored artifacts."
 tools: [read, search, web]
 ---

@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Federation coordinator. Use when a task requires multiple OS domains — e.g., a support ticket that needs a code fix and documentation update. Routes work across OSs, manages data classification, and tracks cross-OS workflows."
 tools: [read, search, web, agent]
 agents: [coding-delegate, research-delegate, support-delegate, knowledge-delegate]

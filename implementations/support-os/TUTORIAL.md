@@ -1,4 +1,4 @@
-﻿# Tutorial: Support OS
+# Tutorial: Support OS
 
 This walkthrough demonstrates how to handle customer support tickets using specialized agents for triage, resolution, investigation, and communication.
 

@@ -1,4 +1,4 @@
-﻿---
+---
 name: new-feature
 description: "Implement a new feature end-to-end. Use when adding functionality, creating endpoints, building components, or implementing user stories."
 ---

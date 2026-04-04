@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Use when writing tests, creating test files, or running test suites. Covers pytest patterns, fixtures, and test organization."
 applyTo: ["**/test_*.py", "**/*_test.py", "**/tests/**"]
 ---

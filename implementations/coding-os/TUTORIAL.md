@@ -1,4 +1,4 @@
-﻿# Tutorial: Coding OS
+# Tutorial: Coding OS
 
 This walkthrough uses a real **To-Do API** project to demonstrate the Coding OS — fixing bugs, building features, and reviewing code with specialized agents.
 
@@ -43,7 +43,7 @@ pip install -e ".[dev]"
 pytest tests/ -v
 ```
 
-All 7 tests pass. The project works — but there's a bug lurking in `list_all()`.
+All 8 tests pass. The project works — but there's a bug lurking in `list_all()`.
 
 ---
 

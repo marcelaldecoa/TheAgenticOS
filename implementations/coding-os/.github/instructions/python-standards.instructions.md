@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Use when writing or modifying Python code. Enforces PEP 8, type hints, explicit error handling, and Pydantic for data validation."
 applyTo: "**/*.py"
 ---

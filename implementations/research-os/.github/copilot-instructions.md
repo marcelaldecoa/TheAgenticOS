@@ -1,4 +1,4 @@
-﻿# Research OS — Copilot Instructions
+# Research OS — Copilot Instructions
 
 This workspace implements a **Research OS** — an Agentic Operating System for conducting research.
 

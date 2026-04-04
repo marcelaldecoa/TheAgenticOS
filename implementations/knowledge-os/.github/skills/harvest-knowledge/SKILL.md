@@ -1,4 +1,4 @@
-﻿---
+---
 name: harvest-knowledge
 description: "Capture knowledge from raw content. Use when processing meeting notes, extracting decisions from documents, capturing architectural decisions, or ingesting new information into the knowledge base."
 ---

@@ -61,7 +61,7 @@ Tier boundaries add complexity. Information may be in the wrong tier at the wron
 All memory is treated as working memory, exhausting the context budget. Compression is too aggressive, discarding details that matter later. Tier boundaries are poorly defined, so information is duplicated across tiers without clear ownership.
 
 ### Related Patterns
-Memory on Demand, Compression Pipeline, Pointer Memory
+[Memory on Demand](#memory-on-demand), [Compression Pipeline](#compression-pipeline), [Pointer Memory](#pointer-memory)
 
 ---
 
@@ -95,7 +95,7 @@ Retrieval adds latency. The pointer may become stale if the underlying content c
 The pointer's metadata is insufficient for the worker to decide whether to resolve it, causing either unnecessary retrieval or missed critical content. The underlying content changes between pointer creation and resolution, producing inconsistent results. Workers resolve every pointer preemptively, negating the pattern's benefits.
 
 ### Related Patterns
-Memory on Demand, Context Sandbox
+[Memory on Demand](#memory-on-demand), [Context Sandbox](./14-process-patterns.md#context-sandbox)
 
 ---
 
@@ -129,7 +129,7 @@ Workers must be able to recognize what they do not know. Multiple retrieval roun
 The worker does not realize it needs information and produces results based on incomplete knowledge. Retrieval returns irrelevant results because the query was poorly formed. Multiple retrieval rounds consume more total context than preloading would have — the cure is worse than the disease.
 
 ### Related Patterns
-Pointer Memory, Layered Memory
+[Pointer Memory](#pointer-memory), [Layered Memory](#layered-memory)
 
 ---
 
@@ -169,7 +169,7 @@ Maintaining the state board adds overhead to every kernel cycle. A stale state b
 The state board becomes a bottleneck when many workers attempt concurrent updates. Stale entries mislead the kernel into replanning based on outdated information. The board grows unboundedly when completed task entries are never archived.
 
 ### Related Patterns
-Active Plan Board, Execution Journal
+[Active Plan Board](./18-runtime-patterns.md#active-plan-board), [Execution Journal](./18-runtime-patterns.md#execution-journal)
 
 ---
 
@@ -202,7 +202,7 @@ Detection is imperfect. Resolution requires reasoning and costs resources.
 The detection logic has too narrow a scope, catching only exact duplicates while missing semantic contradictions. Resolution always favors the most recent entry, discarding earlier information that was actually correct. False positives in conflict detection create a flood of reconciliation tasks that overwhelm the kernel.
 
 ### Related Patterns
-Contradiction Pruning, Compression Pipeline
+[Contradiction Pruning](#contradiction-pruning), [Compression Pipeline](#compression-pipeline)
 
 ---
 
@@ -248,7 +248,7 @@ Compression is lossy. Important details may be discarded if the compression logi
 The summarizer discards critical details (e.g., a specific error message that would diagnose a recurring bug). Compression runs too infrequently, causing memory to grow until retrieval performance degrades. Compression runs too aggressively, losing detail before it has been fully utilized.
 
 ### Related Patterns
-Layered Memory, Memory Reconciliation
+[Layered Memory](#layered-memory), [Memory Reconciliation](#memory-reconciliation)
 
 ---
 
@@ -281,7 +281,7 @@ Aggressive pruning may remove information that turns out to be relevant later. T
 The pruning logic removes a fact that was correct, based on a newer entry that was actually wrong (e.g., a hallucinated correction). Pruning runs so infrequently that contradicted information is retrieved many times before being cleaned. The pruning log grows large but is never reviewed, hiding systematic errors in the pruning logic.
 
 ### Related Patterns
-Memory Reconciliation, Compression Pipeline
+[Memory Reconciliation](#memory-reconciliation), [Compression Pipeline](#compression-pipeline)
 
 ---
 

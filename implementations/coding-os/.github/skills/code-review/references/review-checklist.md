@@ -1,4 +1,4 @@
-﻿# Code Review Checklist
+# Code Review Checklist
 
 Use this checklist for every code review.
 

@@ -1,4 +1,4 @@
-﻿---
+---
 name: literature-review
 description: "Conduct a literature review on a topic. Use when surveying state of the art, reviewing academic research, summarizing evidence on a question, or producing annotated bibliographies."
 ---

@@ -1,4 +1,4 @@
-﻿---
+---
 name: triage-and-resolve
 description: "Handle a support ticket end-to-end. Use when a customer reports an issue, needs help, has a question, or requires troubleshooting."
 ---

@@ -1,4 +1,4 @@
-﻿---
+---
 name: fix-bug
 description: "Fix a bug in the codebase. Use when debugging, diagnosing failures, fixing errors, resolving issues, or investigating unexpected behavior."
 ---

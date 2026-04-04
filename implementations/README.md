@@ -1,4 +1,4 @@
-﻿# Agentic OS — Reference Implementations
+# Agentic OS — Reference Implementations
 
 Each folder is a self-contained workspace implementing one of the case studies from Part VI of the book. Copy the `.github/` folder into any project to activate agents, skills, and instructions with GitHub Copilot.
 

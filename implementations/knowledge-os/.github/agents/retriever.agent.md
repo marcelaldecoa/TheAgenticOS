@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Knowledge retriever. Use when answering questions from the knowledge base, looking up decisions, finding documentation, or explaining why something was done a certain way."
 tools: [read, search]
 ---

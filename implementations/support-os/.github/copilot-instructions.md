@@ -1,4 +1,4 @@
-﻿# Support OS — Copilot Instructions
+# Support OS — Copilot Instructions
 
 This workspace implements a **Support OS** — an Agentic Operating System for customer support.
 

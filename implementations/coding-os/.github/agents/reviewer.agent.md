@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Code review specialist. Use when reviewing code quality, security, architecture, style compliance, or verifying changes before merge. Read-only — does not modify code."
 tools: [read, search]
 ---

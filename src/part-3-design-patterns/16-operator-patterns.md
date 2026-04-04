@@ -55,7 +55,7 @@ Wrapper overhead adds latency to every tool invocation. Maintaining operator wra
 The wrapper obscures tool-specific error details behind a generic error type, making diagnosis difficult. Permission checks are too coarse, blocking legitimate use or too permissive, allowing unauthorized access. Observability logging captures sensitive data that should not be persisted.
 
 ### Related Patterns
-Operator Registry, Operator Isolation, Skill over Operators
+[Operator Registry](#operator-registry), [Operator Isolation](#operator-isolation), [Skill over Operators](#skill-over-operators)
 
 ---
 
@@ -96,7 +96,7 @@ The registry becomes a single point of failure for tool discovery. Registry main
 The registry contains stale entries for tools that no longer exist, causing invocation failures. Deprecated operators are still selected because the replacement was not registered. The registry grows to include hundreds of operators, making tool selection noisy and imprecise.
 
 ### Related Patterns
-Tool as Operator, Capability-Based Access
+[Tool as Operator](#tool-as-operator), [Capability-Based Access](./17-governance-patterns.md#capability-based-access)
 
 ---
 
@@ -144,7 +144,7 @@ Skills are less flexible than improvised workflows. They must be maintained as t
 A skill encodes an operator sequence that worked at creation time but breaks after an operator's interface changes. Skills are too rigid, forcing workers through unnecessary steps. Skills are too numerous and overlapping, making it unclear which skill to use for a given task.
 
 ### Related Patterns
-Composable Operator Chain, Patternized Skills
+[Composable Operator Chain](#composable-operator-chain), [Patternized Skills](./19-evolution-patterns.md#patternized-skills)
 
 ---
 
@@ -185,7 +185,7 @@ Chains are rigid — branching logic requires escaping the pipeline model. Long 
 A type mismatch between stages causes a runtime error that should have been caught at chain definition time. A mid-chain failure loses the partial results from earlier stages. The chain abstraction is applied to operations that are not truly pipelines, forcing awkward data transformations between stages.
 
 ### Related Patterns
-Skill over Operators, Tool as Operator
+[Skill over Operators](#skill-over-operators), [Tool as Operator](#tool-as-operator)
 
 ---
 
@@ -218,7 +218,7 @@ Isolation overhead adds latency. Structured error conversion may lose tool-speci
 The isolation boundary leaks — a tool that consumes excessive memory affects other operators sharing the same process. Timeout values are set too aggressively, killing tools that are slow but would eventually succeed. The structured error result lacks enough detail for the worker to choose the right recovery strategy.
 
 ### Related Patterns
-Operator Fallback, Failure Containment
+[Operator Fallback](#operator-fallback), [Failure Containment](./18-runtime-patterns.md#failure-containment)
 
 ---
 
@@ -255,7 +255,7 @@ Fallback operators may have different characteristics (latency, result quality).
 The fallback operator has subtly different semantics than the primary, producing results that appear correct but differ in important ways. Both primary and fallback fail, but the combined error message is confusing. Fallback masks a systemic primary failure, delaying investigation.
 
 ### Related Patterns
-Operator Isolation, Tool as Operator
+[Operator Isolation](#operator-isolation), [Tool as Operator](#tool-as-operator)
 
 ---
 
@@ -293,7 +293,7 @@ Cost tracking adds overhead. Cost estimates may be inaccurate, leading to either
 Cost profiles are stale — the operator's actual cost has changed but the registry has not been updated. The system defers critical invocations to save budget, degrading result quality. Resource accounting is not thread-safe, allowing parallel workers to collectively exceed the budget.
 
 ### Related Patterns
-Resource Envelope, Context Budget Enforcement
+[Resource Envelope](./18-runtime-patterns.md#resource-envelope), [Context Budget Enforcement](./18-runtime-patterns.md#context-budget-enforcement)
 
 ---
 

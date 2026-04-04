@@ -1,4 +1,4 @@
-﻿# Competitive Analysis Report Template
+# Competitive Analysis Report Template
 
 ## Executive Summary
 [2-3 sentence summary of key findings and recommendation]

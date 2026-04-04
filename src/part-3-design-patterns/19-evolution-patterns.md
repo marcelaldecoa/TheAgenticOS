@@ -33,7 +33,7 @@ Skill maintenance burden. Risk of applying stale skills to changed domains.
 Skills that become gospel instead of guidance. Skill registries that grow without curation.
 
 ### Related Patterns
-Reusable Worker Archetypes, Operator Adapters, Governed Extensibility
+[Reusable Worker Archetypes](#reusable-worker-archetypes), [Operator Adapters](#operator-adapters), [Governed Extensibility](#governed-extensibility)
 
 ---
 
@@ -66,7 +66,7 @@ Archetype maintenance. Risk of forcing problems into existing archetypes when a 
 "One archetype fits all" thinking. Archetypes that diverge from actual effective practice.
 
 ### Related Patterns
-Patternized Skills, Subagent as Process, Scoped Worker Contract
+[Patternized Skills](#patternized-skills), [Subagent as Process](./14-process-patterns.md#subagent-as-process), [Scoped Worker Contract](./14-process-patterns.md#scoped-worker-contract)
 
 ---
 
@@ -99,7 +99,7 @@ Adapter development and maintenance. Potential loss of tool-specific features be
 Leaky abstractions where tool-specific errors propagate through. Adapters that eliminate capabilities unique to specific tools.
 
 ### Related Patterns
-Tool as Operator, Operator Registry, Operator Isolation
+[Tool as Operator](./16-operator-patterns.md#tool-as-operator), [Operator Registry](./16-operator-patterns.md#operator-registry), [Operator Isolation](./16-operator-patterns.md#operator-isolation)
 
 ---
 
@@ -132,7 +132,7 @@ Duplication across domain OSs. Integration complexity for cross-domain workflows
 Over-specialization that prevents cross-domain learning. Under-specialization that's just the general system with a label.
 
 ### Related Patterns
-Meta-Orchestrator, Capability Marketplace, Patternized Skills
+[Meta-Orchestrator](#meta-orchestrator), [Capability Marketplace](#capability-marketplace), [Patternized Skills](#patternized-skills)
 
 ---
 
@@ -165,7 +165,7 @@ Orchestration overhead. Cross-domain governance complexity. Error correlation ac
 Meta-orchestrator that micromanages domain OSs. Domain OSs that cannot operate independently.
 
 ### Related Patterns
-Domain-Specific Agentic OS, Multi-OS Coordination, Active Plan Board
+[Domain-Specific Agentic OS](#domain-specific-agentic-os), Multi-OS Coordination, [Active Plan Board](./18-runtime-patterns.md#active-plan-board)
 
 ---
 
@@ -198,7 +198,7 @@ Marketplace governance overhead. Version management across consumers. Quality co
 Marketplace pollution with low-quality capabilities. Version conflicts across consumers. Abandoned capabilities.
 
 ### Related Patterns
-Operator Registry, Patternized Skills, Governed Extensibility
+[Operator Registry](./16-operator-patterns.md#operator-registry), [Patternized Skills](#patternized-skills), [Governed Extensibility](#governed-extensibility)
 
 ---
 
@@ -231,7 +231,7 @@ Extension development overhead. Governance pipeline latency. Contract design com
 Contracts that are too restrictive, preventing useful extensions. Contracts that are too permissive, admitting low-quality extensions.
 
 ### Related Patterns
-Capability Marketplace, Operator Adapters, Patternized Skills
+[Capability Marketplace](#capability-marketplace), [Operator Adapters](#operator-adapters), [Patternized Skills](#patternized-skills)
 
 ---
 

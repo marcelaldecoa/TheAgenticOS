@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Research critic. Use when checking research quality, verifying citations, identifying bias, finding gaps in analysis, or challenging conclusions. Read-only quality gate."
 tools: [read]
 ---

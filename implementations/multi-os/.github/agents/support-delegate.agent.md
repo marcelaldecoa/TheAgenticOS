@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Delegate to Support OS. Use when the coordinator needs ticket triage, customer context, known issue lookups, or customer communication drafts from the Support OS."
 tools: [read, search]
 user-invocable: false
