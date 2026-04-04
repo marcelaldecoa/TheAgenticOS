@@ -51,7 +51,7 @@ Isolation adds overhead (context copying, capability scoping). Very simple tasks
 Over-isolation — the worker lacks critical context because the sandbox was too restrictive, producing low-quality results without signaling that it was under-informed. Under-isolation — shared mutable state between workers causes one worker's output to corrupt another's reasoning.
 
 ### Related Patterns
-Context Sandbox, Scoped Worker Contract, Ephemeral Worker
+[Context Sandbox](#context-sandbox), [Scoped Worker Contract](#scoped-worker-contract), [Ephemeral Worker](#ephemeral-worker)
 
 ---
 
@@ -85,7 +85,7 @@ Context curation requires effort and judgment. Mistakes in curation (missing cri
 The sandbox includes irrelevant context that distracts the worker (e.g., full conversation history injected "just in case"). Critical context is excluded because the curation logic lacks domain awareness. The worker infers missing information incorrectly rather than requesting it, producing confident but wrong results.
 
 ### Related Patterns
-Subagent as Process, Memory on Demand
+[Subagent as Process](#subagent-as-process), [Memory on Demand](./15-memory-patterns.md#memory-on-demand)
 
 ---
 
@@ -118,7 +118,7 @@ If the same type of work recurs, the lack of persistent state means the worker c
 Worker creation overhead becomes a bottleneck when hundreds of ephemeral workers are spawned per second. Results are lost if the kernel fails to capture them before the worker terminates. Ephemeral workers are used for tasks that actually need accumulated state, leading to repeated mistakes.
 
 ### Related Patterns
-Context Sandbox, Subagent as Process
+[Context Sandbox](#context-sandbox), [Subagent as Process](#subagent-as-process)
 
 ---
 
@@ -167,7 +167,7 @@ Contract authoring adds overhead. Contracts that are too specific prevent the wo
 The contract specifies the output format but not the quality criteria, so the worker returns well-formatted but useless output. The timeout is too aggressive for the task's actual complexity, causing premature termination. Capabilities are copy-pasted from a template rather than scoped to the specific task.
 
 ### Related Patterns
-Subagent as Process, Permission Gate
+[Subagent as Process](#subagent-as-process), [Permission Gate](./17-governance-patterns.md#permission-gate)
 
 ---
 
@@ -211,7 +211,7 @@ Parallel execution increases peak resource usage. Consolidation of parallel resu
 Subtasks assumed to be independent are actually coupled — a security specialist's findings depend on the quality specialist's code analysis, but both run without the other's output. One slow specialist blocks the entire swarm because the consolidator waits for all results. The result consolidator cannot reconcile contradictory specialist opinions.
 
 ### Related Patterns
-Result Consolidator, Planner-Executor Split
+[Result Consolidator](./13-kernel-patterns.md#result-consolidator), [Planner-Executor Split](./13-kernel-patterns.md#planner-executor-split)
 
 ---
 
@@ -252,7 +252,7 @@ Adds latency and cost. The reviewer itself can be wrong. Reviewing every task is
 The reviewer rubber-stamps output without meaningful analysis because the review criteria are too vague. The revision loop oscillates — the reviewer and worker disagree on approach and trade revisions indefinitely. The reviewer applies different quality standards than the task actually requires, blocking acceptable output.
 
 ### Related Patterns
-Result Consolidator, Recovery Process
+[Result Consolidator](./13-kernel-patterns.md#result-consolidator), [Recovery Process](#recovery-process)
 
 ---
 
@@ -302,7 +302,7 @@ Recovery logic is itself fallible. Multiple recovery attempts can consume signif
 The recovery process misdiagnoses the failure and applies the wrong strategy repeatedly. Recovery consumes more resources than the original task was worth. The recovery process itself fails, creating a recursive failure that the supervisor must catch.
 
 ### Related Patterns
-Reflective Retry, Failure Containment, Human Escalation
+[Reflective Retry](./13-kernel-patterns.md#reflective-retry), [Failure Containment](./18-runtime-patterns.md#failure-containment), [Human Escalation](./17-governance-patterns.md#human-escalation)
 
 ---
 

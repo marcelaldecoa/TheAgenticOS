@@ -33,7 +33,7 @@ Board maintenance overhead. Stale boards if updates are delayed.
 Workers that don't report status, leaving the board inaccurate. Overly granular boards that consume more attention than the work itself.
 
 ### Related Patterns
-Execution Journal, Planner-Executor Split
+[Execution Journal](#execution-journal), [Planner-Executor Split](./13-kernel-patterns.md#planner-executor-split)
 
 ---
 
@@ -66,7 +66,7 @@ Storage growth. Write overhead. Risk of sensitive data in journals.
 Journal writes that block execution. Journals too verbose to be useful.
 
 ### Related Patterns
-Auditable Action, Active Plan Board, Checkpoints and Rollback
+[Auditable Action](./17-governance-patterns.md#auditable-action), [Active Plan Board](#active-plan-board), [Checkpoints and Rollback](#checkpoints-and-rollback)
 
 ---
 
@@ -112,7 +112,7 @@ Checkpoint serialization cost. Storage requirements. External side effects canno
 Checkpoints that capture inconsistent state. Over-reliance on rollback instead of fixing root causes.
 
 ### Related Patterns
-Active Plan Board, Failure Containment, Execution Journal
+[Active Plan Board](#active-plan-board), [Failure Containment](#failure-containment), [Execution Journal](#execution-journal)
 
 ---
 
@@ -145,7 +145,7 @@ Isolation boundaries add overhead. Over-isolation prevents useful cooperation.
 Failures in shared resources (memory plane, operator fabric) that bypass process boundaries. Detection delays that allow cascading before containment.
 
 ### Related Patterns
-Subagent as Process, Context Sandbox, Resource Envelope
+[Subagent as Process](./14-process-patterns.md#subagent-as-process), [Context Sandbox](./14-process-patterns.md#context-sandbox), [Resource Envelope](#resource-envelope)
 
 ---
 
@@ -188,7 +188,7 @@ Slower initial deployment. Metrics design is critical and non-trivial.
 Premature promotion. Metrics that don't capture actual risk. Stage demotion that isn't triggered by real incidents.
 
 ### Related Patterns
-Risk-Tiered Execution, Human Escalation, Permission Gate
+[Risk-Tiered Execution](./17-governance-patterns.md#risk-tiered-execution), [Human Escalation](./17-governance-patterns.md#human-escalation), [Permission Gate](./17-governance-patterns.md#permission-gate)
 
 ---
 
@@ -221,7 +221,7 @@ Legitimate complex tasks may hit boundaries. Envelope sizing requires experience
 Envelopes set too tight, killing valid work. Envelopes set too loose, providing no real protection.
 
 ### Related Patterns
-Context Budget Enforcement, Failure Containment, Subagent as Process
+[Context Budget Enforcement](#context-budget-enforcement), [Failure Containment](#failure-containment), [Subagent as Process](./14-process-patterns.md#subagent-as-process)
 
 ---
 
@@ -254,7 +254,7 @@ Aggressive budgeting may exclude relevant information. Relevance scoring must be
 Budget enforcement that drops critical context. Relevance scoring that favors recency over importance.
 
 ### Related Patterns
-Resource Envelope, Memory on Demand, Compression Pipeline
+[Resource Envelope](#resource-envelope), [Memory on Demand](./15-memory-patterns.md#memory-on-demand), [Compression Pipeline](./15-memory-patterns.md#compression-pipeline)
 
 ---
 

@@ -16,12 +16,12 @@ Inspired by capability-based security in operating systems, each agent or worker
 
 ```mermaid
 flowchart LR
-  subgraph Granted["\u2713 Granted"]
+  subgraph Granted["Granted"]
     R["file.read\nscope: src/**"]
     D["git.diff\nscope: current-branch"]
     C["comment.create\nscope: pull-request"]
   end
-  subgraph Denied["\u2717 Denied"]
+  subgraph Denied["Denied"]
     W["file.write"]
     P["git.push"]
     Dep["deploy.*"]

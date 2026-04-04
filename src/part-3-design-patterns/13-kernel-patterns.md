@@ -44,7 +44,7 @@ Routing logic itself becomes a point of failure. Misclassification leads to unde
 A complex request classified as simple produces shallow results. A simple request classified as complex wastes resources and adds latency.
 
 ### Related Patterns
-Planner-Executor Split, Policy-Aware Scheduler
+[Planner-Executor Split](#planner-executor-split), [Policy-Aware Scheduler](#policy-aware-scheduler)
 
 ---
 
@@ -77,7 +77,7 @@ The overhead of maintaining a plan is not justified for trivial tasks. The plann
 The planner produces an overly detailed plan that constrains the executor unnecessarily. The executor deviates from the plan without reporting back, causing the planner to lose coherence. The plan-review cycle becomes a bottleneck when every step requires a full replanning pass.
 
 ### Related Patterns
-Intent Router, Execution Loop Supervisor, Reflective Retry
+[Intent Router](#intent-router), [Execution Loop Supervisor](#execution-loop-supervisor), [Reflective Retry](#reflective-retry)
 
 ---
 
@@ -122,7 +122,7 @@ Scheduling logic adds complexity. Poor priority functions lead to starvation of 
 Priority inversion — a low-risk, low-priority task runs while a high-priority but policy-gated task starves waiting for approval. The scoring function over-weights urgency, causing risky work to bypass governance. Scheduling overhead dominates when the task queue is small and contention is low.
 
 ### Related Patterns
-Permission Gate, Staged Autonomy
+[Permission Gate](./17-governance-patterns.md#permission-gate), [Staged Autonomy](./18-runtime-patterns.md#staged-autonomy)
 
 ---
 
@@ -173,7 +173,7 @@ Consolidation itself requires model invocations and context. Complex consolidati
 The consolidator silently drops a worker's output because it does not fit the expected format. Contradictions are resolved by choosing the last result rather than the best, hiding minority viewpoints. Partial consolidation under timeout produces an incomplete result that appears complete.
 
 ### Related Patterns
-Subagent as Process, Reviewer Process
+[Subagent as Process](./14-process-patterns.md#subagent-as-process), [Reviewer Process](./14-process-patterns.md#reviewer-process)
 
 ---
 
@@ -220,7 +220,7 @@ Reflection adds latency. The analysis itself can be wrong.
 The analysis misclassifies a structural failure as transient, wasting retry budget on an approach that will never succeed. The system modifies its approach so aggressively that the new approach is worse than the original. Reflection consumes significant context budget, leaving less room for the actual retry.
 
 ### Related Patterns
-Recovery Process, Failure Containment
+[Recovery Process](./14-process-patterns.md#recovery-process), [Failure Containment](./18-runtime-patterns.md#failure-containment)
 
 ---
 
@@ -269,7 +269,7 @@ A strict supervisor may kill useful work that is simply slow. A lenient supervis
 Progress indicators are too coarse — the loop appears to make progress (new outputs generated) but is actually oscillating between equivalent states. The supervisor terminates a task that was one iteration away from completion. The stall threshold is set uniformly when different task types have fundamentally different iteration patterns.
 
 ### Related Patterns
-Resource Envelope, Context Budget Enforcement
+[Resource Envelope](./18-runtime-patterns.md#resource-envelope), [Context Budget Enforcement](./18-runtime-patterns.md#context-budget-enforcement)
 
 ---
 
