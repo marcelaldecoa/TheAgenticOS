@@ -165,3 +165,29 @@ Aggressive pruning may remove information that turns out to be relevant later. T
 
 ### Related Patterns
 Memory Reconciliation, Compression Pipeline
+
+---
+
+## Applicability Guide
+
+Memory patterns range from essential (every system needs some form of layered memory) to advanced (contradiction pruning is for mature systems with rich accumulated knowledge).
+
+### Decision Matrix
+
+| Pattern | Apply When | Do Not Apply When |
+|---|---|---|
+| **Layered Memory** | The system operates across sessions; past context improves future performance | The system is stateless by design — each request starts from zero and that is acceptable |
+| **Pointer Memory** | Full artifacts are too large for context windows; you need references that resolve on demand | All relevant data fits comfortably in the context window; indirection adds complexity without benefit |
+| **Memory on Demand** | Context windows are precious; loading all potentially relevant memory upfront wastes tokens | The system has abundant context capacity or the memory corpus is small enough to include entirely |
+| **Operational State Board** | Multiple workers need shared visibility into a task's progress, findings, and decisions | A single worker handles the entire task; there is no shared state to coordinate |
+| **Memory Reconciliation** | Multiple workers produce memories that may overlap or conflict; the system accumulates knowledge over time | Memories are append-only and never revised; or each memory source is authoritative in its domain with no overlaps |
+| **Compression Pipeline** | The memory store grows unboundedly; older memories need summarization to remain useful without consuming storage | The memory corpus is bounded and manageable; or every detail must be preserved at full fidelity (audit requirements) |
+| **Contradiction Pruning** | The system has long-lived memory where earlier facts are frequently superseded | The system's domain has few contradictions; or memories are versioned and consumers handle contradiction themselves |
+
+### Progressive Memory Architecture
+
+**Phase 1** (MVP): **Layered Memory** with working memory (per-task context) and a simple semantic store (embeddings over documents). This is sufficient for most single-session and short-lived multi-session systems.
+
+**Phase 2** (Growth): Add **Memory on Demand** and **Pointer Memory** as the corpus grows beyond what fits in context. Add **Operational State Board** when you introduce multi-worker coordination.
+
+**Phase 3** (Maturity): Add **Compression Pipeline**, **Memory Reconciliation**, and **Contradiction Pruning** as the system accumulates months of operational knowledge and stale information begins to degrade quality.

@@ -4,20 +4,26 @@ This is the architectural heart of the book. The Agentic OS is composed of disti
 
 ## The Stack
 
-```text
-┌─────────────────────────────────────────┐
-│           Experience Layer              │  ← Human interface
-├─────────────────────────────────────────┤
-│           Cognitive Kernel              │  ← Intent routing, planning, coordination
-├─────────────────────────────────────────┤
-│           Process Fabric                │  ← Isolated workers, task lifecycle
-├──────────────────┬──────────────────────┤
-│   Memory Plane   │   Operator Fabric    │  ← State & knowledge │ Tools & services
-├──────────────────┴──────────────────────┤
-│          Governance Plane               │  ← Policies, permissions, audit
-├─────────────────────────────────────────┤
-│       Execution Environment             │  ← Infrastructure, models, runtimes
-└─────────────────────────────────────────┘
+```mermaid
+block-beta
+  columns 1
+  EL["Experience Layer\nHuman interface"]
+  CK["Cognitive Kernel\nIntent routing, planning, coordination"]
+  PF["Process Fabric\nIsolated workers, task lifecycle"]
+  columns 2
+  MP["Memory Plane\nState & knowledge"]
+  OF["Operator Fabric\nTools & services"]
+  columns 1
+  GP["Governance Plane\nPolicies, permissions, audit"]
+  EE["Execution Environment\nInfrastructure, models, runtimes"]
+
+  style EL fill:#2d5a8e,stroke:#4a9eff,color:#e8f0fe
+  style CK fill:#1e3a5f,stroke:#4a9eff,color:#e8f0fe
+  style PF fill:#1e3a5f,stroke:#4a9eff,color:#e8f0fe
+  style MP fill:#163050,stroke:#5ee7df,color:#e8f0fe
+  style OF fill:#163050,stroke:#5ee7df,color:#e8f0fe
+  style GP fill:#2b1f4e,stroke:#b794f6,color:#e8f0fe
+  style EE fill:#0f2140,stroke:#4a9eff,color:#7a9ec2
 ```
 
 ## Layer Responsibilities

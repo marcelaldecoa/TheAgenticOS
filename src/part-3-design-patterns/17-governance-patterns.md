@@ -232,3 +232,29 @@ Novel actions that don't fit existing tiers default to the wrong level. Tier inf
 
 ### Related Patterns
 Permission Gate, Human Escalation, Staged Autonomy
+
+---
+
+## Applicability Guide
+
+Governance patterns are not optional — but the *depth* of governance should match the risk profile of your domain. Over-governing a low-risk system wastes resources. Under-governing a high-risk system invites incidents.
+
+### Decision Matrix
+
+| Pattern | Apply When | Do Not Apply When |
+|---|---|---|
+| **Capability-Based Access** | Workers have different trust levels; principle of least privilege matters; you need to scope tool access per worker | All workers are fully trusted and run in a controlled environment with no sensitive resources |
+| **Least Privilege Agent** | Workers should only access what they need; over-provisioning creates security risk | The system has a single worker operating in a sandbox where all resources are pre-scoped |
+| **Permission Gate** | Some actions require human or policy approval before execution; irreversible actions need checkpoints | All actions are reversible, low-risk, and pre-approved; gates would add latency with no safety benefit |
+| **Human Escalation** | The system encounters situations beyond its confidence or authority; a human needs to make the call | The system operates autonomously by design with no human available; or all decisions are within the system's authority |
+| **Auditable Action** | Compliance requires a record of what happened and why; debugging requires post-hoc analysis | The system is a throwaway prototype with no accountability requirements |
+| **Signed Intent** | Multi-party authorization matters; you need to prove that a specific operator authorized a specific action | Single-user system with simple authentication; provenance is not a concern |
+| **Risk-Tiered Execution** | Actions vary widely in risk (from reading a file to deleting a database); governance overhead should match risk | All actions have the same risk profile; a uniform policy is simpler and sufficient |
+
+### The Non-Negotiables
+
+For any production system: **Capability-Based Access**, **Auditable Action**, and **Human Escalation** are non-negotiable. They cost little to implement and prevent the most common and harmful failure modes.
+
+**Permission Gate** and **Risk-Tiered Execution** should be added as soon as the system performs any irreversible or externally-visible actions.
+
+**Signed Intent** and **Least Privilege Agent** are important for multi-user, multi-team, or regulated environments.

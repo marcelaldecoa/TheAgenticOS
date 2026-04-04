@@ -59,6 +59,14 @@ Knowledge-specific policies:
 
 ## Workflow: Knowledge Capture
 
+```mermaid
+flowchart LR
+  Source[Meeting / Document /\nConversation] --> H[Harvest\nExtract decisions,\nrationale, actions]
+  H --> Cu[Curate\nLink, deduplicate,\ncheck conflicts]
+  Cu --> Au[Author\nProduce structured\nknowledge artifact]
+  Au --> KG[Knowledge Graph\nIndexed & linked]
+```
+
 ### The Meeting That Produces Knowledge
 
 A team holds an architecture review meeting. In a traditional organization, the knowledge from this meeting lives in the attendees' memories and maybe a sparse set of meeting notes that no one reads.
@@ -164,6 +172,17 @@ The validator does not just check dates — it cross-references knowledge agains
 
 The Knowledge OS creates a reinforcing cycle:
 
+```mermaid
+flowchart LR
+  A[More knowledge\ncaptured] --> B[Better retrieval\nresults]
+  B --> C[More people\nuse the system]
+  C --> D[Better usage\nanalytics]
+  D --> E[Smarter\ncuration]
+  E --> F[Higher quality\nknowledge]
+  F --> G[More\ntrust]
+  G --> A
+```
+
 1. More knowledge captured → better retrieval results.
 2. Better retrieval results → more people use the system.
 3. More usage → better usage analytics → smarter curation.
@@ -177,3 +196,255 @@ This flywheel is why the OS model matters. A static knowledge base has no flywhe
 A wiki stores pages. A Knowledge OS *manages knowledge*: it captures it from where it is created, connects it across domains, maintains it against drift, delivers it where it is needed, and learns from usage.
 
 The OS provides what wikis lack: active processes (harvesting, curation, validation), structured memory (knowledge graphs, provenance, freshness), governance (classification, retention, accuracy), and adaptation (usage-driven curation, automated maintenance). The wiki asks humans to do all of this manually. The Knowledge OS automates the lifecycle while keeping humans in control of what matters — the knowledge itself.
+
+## Reference Implementation
+
+The Knowledge OS centers on the memory plane — here, memory *is* the product. The implementation emphasizes ingestion pipelines, graph storage, and freshness validation.
+
+### State Definition
+
+```python
+class KnowledgeArtifact(TypedDict):
+    id: str
+    title: str
+    content: str
+    source: str           # origin: "meeting", "commit", "document", "conversation"
+    source_url: str
+    author: str
+    created_at: str
+    confidence: float     # 0.0-1.0
+    classification: Literal["public", "internal", "confidential"]
+    tags: list[str]
+    linked_artifacts: list[str]  # IDs of related artifacts
+
+class KnowledgeState(TypedDict):
+    # Input
+    raw_input: str
+    input_type: Literal["meeting_notes", "document", "code_change", "query"]
+
+    # Processing
+    extracted_artifacts: list[KnowledgeArtifact]
+    conflicts: list[dict]
+    validation_results: list[dict]
+
+    # Output
+    result: str
+    status: str
+```
+
+### Knowledge Graph: PostgreSQL + pgvector
+
+The knowledge graph uses PostgreSQL for structured relationships and pgvector for semantic retrieval:
+
+```python
+# memory/knowledge_store.py
+import asyncpg
+from pgvector.asyncpg import register_vector
+
+class KnowledgeStore:
+    """The memory plane for the Knowledge OS."""
+
+    async def store_artifact(self, artifact: KnowledgeArtifact):
+        """Store a knowledge artifact with embedding for semantic search."""
+        embedding = await embed(artifact["content"])
+        await self.pool.execute("""
+            INSERT INTO knowledge_artifacts
+                (id, title, content, source, source_url, author,
+                 created_at, confidence, classification, tags, embedding)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+            ON CONFLICT (id) DO UPDATE
+            SET content=$3, confidence=$8, updated_at=NOW()
+        """, artifact["id"], artifact["title"], artifact["content"],
+             artifact["source"], artifact["source_url"], artifact["author"],
+             artifact["created_at"], artifact["confidence"],
+             artifact["classification"], artifact["tags"], embedding)
+
+    async def link_artifacts(self, from_id: str, to_id: str,
+                             relation: str):
+        """Create a relationship in the knowledge graph."""
+        await self.pool.execute("""
+            INSERT INTO knowledge_links (from_id, to_id, relation)
+            VALUES ($1, $2, $3) ON CONFLICT DO NOTHING
+        """, from_id, to_id, relation)
+
+    async def search(self, query: str, classification_max: str = "internal",
+                     limit: int = 10) -> list[dict]:
+        """Semantic search with classification-based access control."""
+        embedding = await embed(query)
+        classification_levels = {"public": 0, "internal": 1, "confidential": 2}
+        max_level = classification_levels[classification_max]
+
+        rows = await self.pool.fetch("""
+            SELECT id, title, content, source, confidence,
+                   1 - (embedding <=> $1) AS similarity
+            FROM knowledge_artifacts
+            WHERE classification_level <= $2
+            ORDER BY embedding <=> $1
+            LIMIT $3
+        """, embedding, max_level, limit)
+        return [dict(r) for r in rows]
+
+    async def find_stale(self, max_age_days: int = 90) -> list[dict]:
+        """Find artifacts that may be stale (for validation worker)."""
+        rows = await self.pool.fetch("""
+            SELECT id, title, source_url, updated_at,
+                   NOW() - updated_at AS age
+            FROM knowledge_artifacts
+            WHERE updated_at < NOW() - INTERVAL '$1 days'
+            ORDER BY age DESC LIMIT 50
+        """, max_age_days)
+        return [dict(r) for r in rows]
+```
+
+### Harvester Worker (Background Process)
+
+The harvester runs continuously, monitoring sources for new knowledge:
+
+```python
+# agents/harvester.py
+"""
+Background worker that monitors information sources
+and extracts knowledge artifacts.
+"""
+
+HARVESTER_INSTRUCTIONS = """You extract structured knowledge from raw content.
+For each piece of content, identify:
+- Decisions made and their rationale
+- Facts and data points with sources
+- Action items and owners
+- Open questions
+- Relationships to existing knowledge
+
+Output as JSON array of knowledge artifacts.
+Each artifact must have: title, content, tags, confidence.
+"""
+
+async def harvest_meeting_notes(notes: str,
+                                meeting_meta: dict) -> list[KnowledgeArtifact]:
+    """Extract knowledge from meeting notes."""
+    response = await litellm.acompletion(
+        model="gpt-4.1",
+        messages=[
+            {"role": "system", "content": HARVESTER_INSTRUCTIONS},
+            {"role": "user", "content": f"Meeting: {meeting_meta['title']}\n"
+                                        f"Date: {meeting_meta['date']}\n"
+                                        f"Attendees: {meeting_meta['attendees']}\n\n"
+                                        f"Notes:\n{notes}"}
+        ],
+        response_format={"type": "json_object"},
+    )
+    artifacts = json.loads(response.choices[0].message.content)["artifacts"]
+
+    # Enrich with provenance
+    for a in artifacts:
+        a["source"] = "meeting"
+        a["source_url"] = meeting_meta.get("url", "")
+        a["author"] = "harvester"
+        a["created_at"] = meeting_meta["date"]
+    return artifacts
+
+async def harvest_code_change(commit: dict) -> list[KnowledgeArtifact]:
+    """Extract knowledge from a code commit (architectural decisions, etc.)."""
+    if not is_significant_commit(commit):  # Skip trivial commits
+        return []
+
+    response = await litellm.acompletion(
+        model="gpt-4.1-mini",  # Fast model for filtering
+        messages=[
+            {"role": "system",
+             "content": "Does this commit contain architectural decisions, "
+                        "API changes, or configuration changes worth documenting? "
+                        "If yes, extract them. If no, return empty artifacts."},
+            {"role": "user",
+             "content": f"Commit: {commit['message']}\n"
+                        f"Files: {commit['files_changed']}\n"
+                        f"Diff summary: {commit['diff'][:3000]}"}
+        ],
+        response_format={"type": "json_object"},
+    )
+    return json.loads(response.choices[0].message.content).get("artifacts", [])
+```
+
+### Validator Worker (Periodic)
+
+```python
+# agents/validator.py
+"""Periodic worker that checks knowledge freshness."""
+
+async def validate_artifact(artifact: dict,
+                            store: KnowledgeStore) -> dict:
+    """Check if a knowledge artifact is still accurate."""
+    # Different validation strategies by source type
+    if artifact["source"] == "api_docs":
+        # Fetch current API and compare
+        current = await fetch_current_api(artifact["source_url"])
+        response = await litellm.acompletion(
+            model="gpt-4.1-mini",
+            messages=[{
+                "role": "system",
+                "content": "Compare the stored documentation with the current "
+                           "state. Is the documentation still accurate? "
+                           "Output: {status: 'current'|'stale'|'partially_stale', "
+                           "issues: [...], suggested_update: '...'}"
+            }, {
+                "role": "user",
+                "content": f"Stored:\n{artifact['content'][:2000]}\n\n"
+                           f"Current:\n{current[:2000]}"
+            }],
+            response_format={"type": "json_object"},
+        )
+        return json.loads(response.choices[0].message.content)
+
+    elif artifact["source"] == "meeting":
+        # Check if referenced entities still exist
+        refs = extract_references(artifact["content"])  # service names, URLs, etc.
+        broken = [r for r in refs if not await check_reference(r)]
+        return {
+            "status": "stale" if broken else "current",
+            "issues": [f"Broken reference: {r}" for r in broken],
+        }
+
+    return {"status": "unknown", "issues": ["No validation strategy for this source"]}
+```
+
+### MCP Server: Knowledge Operations
+
+```python
+# mcp_servers/knowledge/server.py
+from mcp.server import Server
+
+server = Server("knowledge")
+
+@server.tool()
+async def knowledge_search(query: str,
+                           scope: str = "internal") -> list[dict]:
+    """Search the knowledge base with access-controlled results."""
+    return await store.search(query, classification_max=scope)
+
+@server.tool()
+async def knowledge_store_artifact(
+    title: str, content: str, source: str,
+    tags: list[str], classification: str = "internal"
+) -> str:
+    """Store a new knowledge artifact."""
+    artifact_id = generate_id()
+    await store.store_artifact({
+        "id": artifact_id, "title": title, "content": content,
+        "source": source, "tags": tags,
+        "classification": classification,
+        "confidence": 0.8,  # default for manually stored
+    })
+    return f"Stored artifact {artifact_id}: {title}"
+
+@server.tool()
+async def knowledge_find_related(artifact_id: str) -> list[dict]:
+    """Find artifacts related to a given artifact via the knowledge graph."""
+    return await store.get_linked(artifact_id, max_depth=2)
+
+@server.tool()
+async def knowledge_get_stale(max_age_days: int = 90) -> list[dict]:
+    """List potentially stale artifacts for review."""
+    return await store.find_stale(max_age_days)
+```
+
+Key patterns: **harvester as background process** (continuous knowledge capture), **knowledge graph with pgvector** (structured relations + semantic search), **classification-based access control** (governance at the memory boundary), **validation worker** (proactive freshness checks), and **MCP server for knowledge operations** (standardized tool interface for all consumers).

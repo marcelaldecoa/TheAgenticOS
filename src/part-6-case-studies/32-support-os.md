@@ -64,6 +64,17 @@ Support-specific policies:
 
 ## Workflow: Technical Support Case
 
+```mermaid
+flowchart TD
+  I[1. Intake\nCustomer submits issue] --> T[2. Triage\nClassify, check context,\nknown issues, system state]
+  T -->|match found| R[3. Resolution Attempt\nApply known fix]
+  T -->|no match| INV[Investigate\nUnknown issue workflow]
+  R --> V[4. Verification\nConfirm fix worked]
+  V -->|success| C[5. Communication\nCraft customer response]
+  V -->|failed| INV
+  C --> L[6. Learning\nUpdate memory & patterns]
+```
+
 ### 1. Intake
 
 A customer submits: "My dashboard has been showing 'loading' for the past hour. I've tried refreshing and clearing cache."
@@ -169,3 +180,256 @@ The system tracks which cases humans handle and why. Over time, if 80% of human 
 A support chatbot matches keywords to canned responses. A Support OS *resolves problems*: it triages, investigates, applies fixes, verifies results, communicates appropriately, learns from outcomes, and knows when to involve a human.
 
 The OS model provides what chatbots lack: memory across interactions (the customer's history), process management (investigation workflows), governance (data access policies, escalation rules), and learning (resolution pattern improvement). These are not chatbot features — they are system properties that emerge from the OS architecture.
+
+## Reference Implementation
+
+The Support OS integrates with ticketing systems, knowledge bases, and customer data — all through MCP servers with strict data access governance.
+
+### State Definition
+
+```python
+class SupportState(TypedDict):
+    # Intake
+    ticket_id: str
+    customer_message: str
+
+    # Triage
+    category: Literal["account", "billing", "technical", "feature_request"]
+    urgency: Literal["critical", "high", "medium", "low"]
+    sentiment: Literal["frustrated", "neutral", "satisfied"]
+
+    # Customer memory (loaded from DB)
+    customer: dict  # {id, name, plan, tenure, past_tickets, sentiment_trend}
+
+    # Known issue match
+    known_issue: dict | None  # {id, symptoms, resolution, confidence}
+
+    # Investigation
+    investigation_log: list[str]
+    root_cause: str | None
+
+    # Resolution
+    resolution: str | None
+    actions_taken: list[str]
+    response_draft: str
+
+    # Governance
+    autonomy_level: int
+    data_classification: Literal["public", "internal", "confidential"]
+    escalation_required: bool
+    status: str
+```
+
+### Kernel: Support Triage and Resolution
+
+```python
+from langgraph.graph import StateGraph, START, END
+from langgraph.checkpoint.postgres import PostgresSaver
+
+def triage(state: SupportState) -> dict:
+    """Triage agent: classify, load customer context, check known issues."""
+    # Load customer memory from database
+    customer = load_customer(state["ticket_id"])
+
+    # Check known issues
+    known_issue = search_known_issues(state["customer_message"])
+
+    # Classify with LLM
+    response = litellm.completion(
+        model="gpt-4.1-mini",  # Fast model for classification
+        messages=[{
+            "role": "system",
+            "content": "Classify this support ticket. Output JSON with: "
+                       "category, urgency, sentiment."
+        }, {
+            "role": "user",
+            "content": f"Customer ({customer['plan']} plan, "
+                       f"{customer['tenure']} tenure):\n{state['customer_message']}"
+        }],
+        response_format={"type": "json_object"},
+        max_tokens=200,
+    )
+    classification = json.loads(response.choices[0].message.content)
+
+    return {
+        "customer": customer,
+        "known_issue": known_issue,
+        **classification,
+        "status": "resolving" if known_issue else "investigating",
+        "data_classification": "confidential",  # customer data present
+    }
+
+def route_after_triage(state: SupportState) -> str:
+    if state["known_issue"] and state["known_issue"]["confidence"] > 0.8:
+        return "resolve_known"
+    if state["urgency"] == "critical":
+        return "escalate"
+    return "investigate"
+
+def resolve_known_issue(state: SupportState) -> dict:
+    """Apply known resolution — may involve tool calls."""
+    issue = state["known_issue"]
+    actions = []
+
+    # Execute resolution steps (e.g., cache invalidation)
+    for step in issue.get("resolution_steps", []):
+        if step["type"] == "api_call":
+            result = execute_support_action(step, state)
+            actions.append(f"{step['description']}: {result}")
+        elif step["type"] == "manual":
+            return {"escalation_required": True, "status": "awaiting_approval"}
+
+    return {
+        "resolution": issue["resolution"],
+        "actions_taken": actions,
+        "status": "verifying",
+    }
+
+def investigate(state: SupportState) -> dict:
+    """Investigator worker: diagnose unknown issues using logs and tools."""
+    tools = get_tools_for_worker("investigator")
+    # investigator gets: log_search, system_metrics, account_tools
+    # investigator does NOT get: customer_data_export, billing_modify
+
+    response = litellm.completion(
+        model="claude-sonnet-4-20250514",  # Strong reasoning for diagnosis
+        messages=[{
+            "role": "system",
+            "content": "You are a support investigator. Diagnose the issue "
+                       "using available tools. Form hypotheses and test them. "
+                       "Log each step of your investigation."
+        }, {
+            "role": "user",
+            "content": f"Ticket: {state['customer_message']}\n"
+                       f"Customer: {state['customer']['plan']} plan\n"
+                       f"No known issue match. Investigate."
+        }],
+        tools=tools,
+        max_tokens=4000,
+    )
+    # Parse investigation results
+    return {
+        "investigation_log": extract_investigation_steps(response),
+        "root_cause": extract_root_cause(response),
+        "status": "escalate" if needs_engineering(response) else "verifying",
+    }
+
+def craft_response(state: SupportState) -> dict:
+    """Communicator worker: write customer-facing response."""
+    response = litellm.completion(
+        model="claude-sonnet-4-20250514",
+        messages=[{
+            "role": "system",
+            "content": "Write a support response. Be empathetic, clear, and "
+                       "solution-focused. No jargon. No blame. No promises "
+                       "you can't keep. Adapt tone to customer sentiment.\n"
+                       f"Customer sentiment: {state['sentiment']}\n"
+                       f"Customer tenure: {state['customer']['tenure']}"
+        }, {
+            "role": "user",
+            "content": f"Issue: {state['customer_message']}\n"
+                       f"Resolution: {state['resolution']}\n"
+                       f"Actions taken: {state['actions_taken']}"
+        }],
+        max_tokens=500,
+    )
+    return {"response_draft": response.choices[0].message.content}
+
+def escalate(state: SupportState) -> dict:
+    """Prepare escalation package for human agent or engineering."""
+    package = {
+        "ticket_id": state["ticket_id"],
+        "summary": state["root_cause"] or state["customer_message"],
+        "investigation_log": state["investigation_log"],
+        "customer_context": {
+            "plan": state["customer"]["plan"],
+            "tenure": state["customer"]["tenure"],
+            "past_tickets": state["customer"]["past_tickets"][-3:],
+        },
+        "suggested_response": state.get("response_draft", ""),
+    }
+    # Send to human queue (Slack, PagerDuty, internal tool)
+    send_escalation(package)
+    return {"status": "escalated", "escalation_required": True}
+
+# Build the graph with persistent checkpoints for long-running cases
+checkpointer = PostgresSaver.from_conn_string(DATABASE_URL)
+
+graph = StateGraph(SupportState)
+graph.add_node("triage", triage)
+graph.add_node("resolve_known", resolve_known_issue)
+graph.add_node("investigate", investigate)
+graph.add_node("verify", verify_resolution)
+graph.add_node("respond", craft_response)
+graph.add_node("escalate", escalate)
+graph.add_node("learn", update_knowledge_base)
+
+graph.add_edge(START, "triage")
+graph.add_conditional_edges("triage", route_after_triage, {
+    "resolve_known": "resolve_known",
+    "investigate": "investigate",
+    "escalate": "escalate",
+})
+graph.add_edge("resolve_known", "verify")
+graph.add_edge("investigate", "verify")
+graph.add_edge("verify", "respond")
+graph.add_edge("respond", "learn")
+graph.add_edge("learn", END)
+graph.add_edge("escalate", END)
+
+support_os = graph.compile(checkpointer=checkpointer)
+```
+
+### MCP Server: Customer & Ticketing
+
+```python
+# mcp_servers/support/server.py
+from mcp.server import Server
+
+server = Server("support-tools")
+
+@server.tool()
+async def search_known_issues(symptoms: str) -> list[dict]:
+    """Search the knowledge base for matching known issues."""
+    # Vector search over known issue descriptions
+    results = await kb_vector_store.similarity_search(symptoms, k=5)
+    return [{"id": r.metadata["issue_id"], "title": r.metadata["title"],
+             "resolution": r.metadata["resolution"],
+             "confidence": r.metadata["score"]} for r in results]
+
+@server.tool()
+async def get_customer_context(ticket_id: str) -> dict:
+    """Load customer context for a ticket (scoped, no PII export)."""
+    customer = await db.get_customer_for_ticket(ticket_id)
+    return {
+        "plan": customer.plan,
+        "tenure": customer.tenure_months,
+        "past_tickets_count": len(customer.tickets),
+        "recent_tickets": [
+            {"date": t.created, "category": t.category, "resolved": t.resolved}
+            for t in customer.tickets[-5:]
+        ],
+        # Governance: PII fields are NOT included
+    }
+
+@server.tool()
+async def invalidate_cache(account_id: str, cache_type: str) -> str:
+    """Invalidate a specific cache for a customer account."""
+    # Level 0 autonomy: safe, reversible operation
+    await cache_service.invalidate(account_id, cache_type)
+    return f"Cache '{cache_type}' invalidated for account {account_id}"
+
+@server.tool()
+async def search_logs(query: str, account_id: str,
+                      hours: int = 24) -> list[dict]:
+    """Search application logs for a customer account."""
+    # Governance: scoped to the customer's account, time-bounded
+    logs = await log_service.search(
+        query=query, account_id=account_id,
+        start_time=datetime.now() - timedelta(hours=hours),
+    )
+    return [{"timestamp": l.ts, "level": l.level,
+             "message": l.message[:200]} for l in logs[:50]]
+```
+
+Key patterns demonstrated: **triage routing** (fast model for classification, strong model for investigation), **known-issue memory** (vector search over past resolutions), **escalation packaging** (structured handoff to humans with full context), **data governance** (customer PII scoped out of tool responses), and **persistent state** (PostgreSQL checkpointer for long-running cases that may wait for human approval).

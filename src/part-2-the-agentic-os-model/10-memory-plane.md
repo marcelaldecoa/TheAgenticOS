@@ -10,6 +10,22 @@ Operating systems solved this problem decades ago with virtual memory, paging, c
 
 ## Memory Tiers
 
+```mermaid
+block-beta
+  columns 1
+  WM["Working Memory\n(Hot — active context, ephemeral)"]
+  EM["Episodic Memory\n(Warm — interaction histories, decision records)"]
+  SM["Semantic Memory\n(Cool — domain knowledge, learned patterns)"]
+  OS["Operational State\n(System metadata, process states, configs)"]
+  AH["Audit History\n(Cold — immutable action log, for humans)"]
+
+  style WM fill:#c0392b,stroke:#e74c3c,color:#fff
+  style EM fill:#d35400,stroke:#e67e22,color:#fff
+  style SM fill:#2980b9,stroke:#3498db,color:#fff
+  style OS fill:#27ae60,stroke:#2ecc71,color:#fff
+  style AH fill:#2c3e50,stroke:#34495e,color:#e8f0fe
+```
+
 ### Working Memory
 
 The immediate context of the current task. This is what the active process can "see" right now. It is small, focused, and ephemeral.

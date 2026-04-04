@@ -18,9 +18,16 @@ The Agentic OS applies the same principle. Agents do not call tools directly. Th
 
 A tool invocation in an agentic system is structurally equivalent to a syscall:
 
-```text
-OS Syscall:     write(fd, buffer, count)      → Controlled I/O
-Agentic Operator: search(query, max_results)  → Controlled action
+```mermaid
+flowchart LR
+  subgraph OS["Traditional OS"]
+    direction LR
+    A1["write(fd, buffer, count)"] --> B1["Controlled I/O"]
+  end
+  subgraph AO["Agentic OS"]
+    direction LR
+    A2["search(query, max_results)"] --> B2["Controlled Action"]
+  end
 ```
 
 Both follow the same pattern: a typed interface, mediated by the kernel, subject to permissions, with structured results.

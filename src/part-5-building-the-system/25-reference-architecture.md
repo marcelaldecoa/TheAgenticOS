@@ -8,27 +8,26 @@ This chapter presents a reference architecture: a concrete, implementable bluepr
 
 The reference architecture has five major subsystems, mirroring the layers described in Part II:
 
-```text
-┌─────────────────────────────────────────────────────────┐
-│                    Operator Interface                    │
-│              (CLI, API, Chat, IDE Plugin)                │
-├─────────────────────────────────────────────────────────┤
-│                   Governance Plane                       │
-│        (Policies, Audit, Approval Gates, Budgets)        │
-├─────────────┬──────────────────────┬────────────────────┤
-│  Cognitive   │    Process Fabric    │   Memory Plane     │
-│  Kernel      │  (Workers, Queues,   │  (Working, Episodic│
-│  (Router,    │   Supervisors,       │   Semantic, Long-  │
-│   Planner,   │   Sandboxes)         │   term Store)      │
-│   Scheduler) │                      │                    │
-├─────────────┴──────────────────────┴────────────────────┤
-│                   Tool & Skill Layer                     │
-│       (File I/O, APIs, Databases, Search, Code          │
-│        Execution, External Services)                     │
-├─────────────────────────────────────────────────────────┤
-│                   Model Provider Layer                   │
-│         (LLM APIs, Embedding Models, Classifiers)        │
-└─────────────────────────────────────────────────────────┘
+```mermaid
+block-beta
+  columns 1
+  OI["Operator Interface\nCLI, API, Chat, IDE Plugin"]
+  GP["Governance Plane\nPolicies, Audit, Approval Gates, Budgets"]
+  columns 3
+  CK["Cognitive Kernel\nRouter, Planner, Scheduler"]
+  PF["Process Fabric\nWorkers, Queues, Supervisors, Sandboxes"]
+  MeP["Memory Plane\nWorking, Episodic, Semantic, Long-term Store"]
+  columns 1
+  TS["Tool & Skill Layer\nFile I/O, APIs, Databases, Search, Code Execution"]
+  MP["Model Provider Layer\nLLM APIs, Embedding Models, Classifiers"]
+
+  style OI fill:#2d5a8e,stroke:#4a9eff,color:#e8f0fe
+  style GP fill:#2b1f4e,stroke:#b794f6,color:#e8f0fe
+  style CK fill:#1e3a5f,stroke:#4a9eff,color:#e8f0fe
+  style PF fill:#1e3a5f,stroke:#4a9eff,color:#e8f0fe
+  style MeP fill:#163050,stroke:#5ee7df,color:#e8f0fe
+  style TS fill:#163050,stroke:#5ee7df,color:#e8f0fe
+  style MP fill:#0f2140,stroke:#4a9eff,color:#7a9ec2
 ```
 
 Each subsystem is independent and communicates through well-defined interfaces. You can replace the model provider without touching the kernel. You can swap the memory store without affecting the process fabric. This is not accidental — it is the core design principle.
@@ -63,8 +62,9 @@ The process fabric manages the lifecycle of workers — the processes that actua
 
 ### Worker Lifecycle
 
-```text
-Spawn → Initialize (load context, tools, policies) → Execute → Report → Terminate
+```mermaid
+flowchart LR
+  S[Spawn] --> I[Initialize\nload context, tools, policies] --> E[Execute] --> R[Report] --> T[Terminate]
 ```
 
 Workers are ephemeral by default. They are created for a specific task, execute it, report results, and are terminated. Long-running workers are possible but are the exception, not the norm.
@@ -111,11 +111,12 @@ The governance plane enforces policies across the entire system.
 
 ### Policy Evaluation Flow
 
-```text
-Action proposed → Policy engine evaluates → 
-  Allowed → Proceed
-  Conditional → Route to approval manager → Wait → Proceed or abort
-  Denied → Block and report
+```mermaid
+flowchart LR
+  AP[Action Proposed] --> PE[Policy Engine Evaluates]
+  PE -->|Allowed| Proceed
+  PE -->|Conditional| AM[Approval Manager] --> Wait --> PA[Proceed or Abort]
+  PE -->|Denied| BR[Block & Report]
 ```
 
 Policy evaluation happens at multiple points: when the planner creates a task (pre-plan), when a worker is about to execute an action (pre-action), and when a result is produced (post-action).

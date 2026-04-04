@@ -175,3 +175,31 @@ A strict supervisor may kill useful work that is simply slow. A lenient supervis
 
 ### Related Patterns
 Resource Envelope, Context Budget Enforcement
+
+---
+
+## Applicability Guide
+
+Not every system needs every kernel pattern. Use the simplest approach that works.
+
+### Decision Matrix
+
+| Pattern | Apply When | Do Not Apply When |
+|---|---|---|
+| **Intent Router** | Requests vary in complexity; you need different execution strategies for different task types | All requests are uniform — a single execution path handles everything |
+| **Planner-Executor Split** | Tasks require 3+ steps with dependencies; plan quality matters and plans need to be inspectable | Tasks are single-step or follow a fixed script; the overhead of a separate planning phase exceeds the value |
+| **Policy-Aware Scheduler** | Multiple tasks compete for resources; some tasks have governance constraints that block execution | Tasks are processed sequentially with no contention; all tasks have identical governance profiles |
+| **Result Consolidator** | Multiple workers produce partial results that must be synthesized into a coherent whole | Each worker produces a complete, standalone result; simple concatenation is sufficient |
+| **Reflective Retry** | Failures contain diagnostic information that can inform a different approach; the task is worth retrying | Failures are deterministic (same input always fails); the task is cheap to abandon and restart |
+| **Execution Loop Supervisor** | Tasks involve open-ended iteration (research, optimization); runaway loops are a real risk | Tasks have a fixed number of steps with deterministic termination |
+
+### Start Simple
+
+For a new system, start with only the **Intent Router** (to distinguish simple from complex requests) and the **Planner-Executor Split** (for complex requests). Add the other patterns as you observe specific failure modes:
+
+- Seeing resource contention? Add the **Policy-Aware Scheduler**.
+- Multi-worker results are incoherent? Add the **Result Consolidator**.
+- Workers fail and retry the same wrong approach? Add **Reflective Retry**.
+- Workers loop indefinitely? Add the **Execution Loop Supervisor**.
+
+The cost of adding a pattern prematurely is unnecessary complexity. The cost of adding it too late is usually acceptable — integrate it when the need becomes clear.

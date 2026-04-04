@@ -74,3 +74,10 @@
 - [From Software Engineering to Intent Engineering](./part-7-toward-a-new-discipline/35-intent-engineering.md)
 - [Designing Agency Responsibly](./part-7-toward-a-new-discipline/36-designing-agency-responsibly.md)
 - [The Future of Operational Intelligence](./part-7-toward-a-new-discipline/37-future-of-operational-intelligence.md)
+
+---
+
+# Appendices
+
+- [Appendix A: Mapping to Today's Stack](./appendices/a-mapping-to-todays-stack.md)
+- [Appendix B: Platform Landscape and Governance Standards](./appendices/b-landscape-and-standards.md)

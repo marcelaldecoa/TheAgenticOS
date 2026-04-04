@@ -52,6 +52,18 @@ This contract is the interface between the kernel and the process fabric. It mak
 
 ## Lifecycle Management
 
+```mermaid
+flowchart LR
+  Spawn[Spawn\nCreate worker] --> Monitor[Monitor\nTrack progress & resources]
+  Monitor -->|healthy| Monitor
+  Monitor -->|completed| Complete[Complete\nCollect results & cleanup]
+  Monitor -->|failed| Fail[Failure Handling\nDiagnose & recover]
+  Monitor -->|over budget| Term[Terminate\nShut down worker]
+  Fail -->|recoverable| Spawn
+  Fail -->|escalate| Esc[Escalate to\nkernel or human]
+  Complete --> Done[Return results\nto kernel]
+```
+
 The process fabric manages:
 
 1. **Spawning** — Creating a new worker with its context and capabilities

@@ -232,3 +232,30 @@ Budget enforcement that drops critical context. Relevance scoring that favors re
 
 ### Related Patterns
 Resource Envelope, Memory on Demand, Compression Pipeline
+
+---
+
+## Applicability Guide
+
+Runtime patterns manage execution state, failure recovery, and resource consumption. They become critical as task complexity and autonomy increase.
+
+### Decision Matrix
+
+| Pattern | Apply When | Do Not Apply When |
+|---|---|---|
+| **Active Plan Board** | Plans are multi-step and need to be inspectable, modifiable, and trackable during execution | Tasks are single-step or follow a fixed script; plan visibility adds no value |
+| **Execution Journal** | You need a detailed record of what the system did and why — for debugging, audit, or learning | The system is a stateless query-response service with no need for execution history |
+| **Checkpoints and Rollback** | Long-running tasks risk partial failure; you need the ability to resume from a known-good state | Tasks are short enough that restarting from scratch is cheaper than maintaining checkpoint infrastructure |
+| **Failure Containment** | Worker failures must not cascade to other workers or corrupt shared state | A single worker handles everything; there is nothing for failures to cascade to |
+| **Staged Autonomy** | The system's autonomy should increase over time as it demonstrates reliability; trust must be earned | The system has a fixed, well-understood autonomy level that does not need to evolve |
+| **Resource Envelope** | Workers can consume unbounded resources (tokens, time, API calls); budget enforcement is needed | Resource consumption is naturally bounded by the task structure; enforcement adds overhead without protection |
+| **Context Budget Enforcement** | Context windows are limited; memory retrieval must be selective; relevance ranking matters | All relevant context fits in the window; or the system does not use retrieved memory |
+
+### Build Order
+
+1. **Execution Journal** — start logging from day one. It is cheap and invaluable for debugging.
+2. **Resource Envelope** — add budget limits before your first large-scale test. Without them, a single runaway task can exhaust your API budget.
+3. **Context Budget Enforcement** — add as soon as memory retrieval is part of your system. Quality degrades rapidly with irrelevant context.
+4. **Active Plan Board** — add when you implement multi-step planning.
+5. **Failure Containment** and **Checkpoints** — add when tasks become long-running (minutes, not seconds).
+6. **Staged Autonomy** — add when you have enough operational history to calibrate trust levels.

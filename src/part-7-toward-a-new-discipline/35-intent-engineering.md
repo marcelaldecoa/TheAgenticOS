@@ -108,6 +108,16 @@ Intent engineering draws from multiple existing disciplines but combines them in
 
 Intent engineering has its own development lifecycle:
 
+```mermaid
+flowchart LR
+  IM[1. Intent\nModeling] --> AD[2. Architecture\nDesign]
+  AD --> SD[3. Skill\nDevelopment]
+  SD --> BT[4. Behavioral\nTesting]
+  BT --> DM[5. Deployment &\nMonitoring]
+  DM --> CR[6. Continuous\nRefinement]
+  CR -.->|iterate| IM
+```
+
 ### 1. Intent Modeling
 
 Before building anything, model the intents the system must handle. What do operators ask for? What do they mean? What do they expect? What constraints are implicit?

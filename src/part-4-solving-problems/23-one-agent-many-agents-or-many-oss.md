@@ -28,6 +28,62 @@ A code-writing agent has a context loaded with the relevant source files, langua
 
 Multi-agent systems require coordination. The Agentic OS supports several patterns:
 
+```mermaid
+flowchart LR
+  subgraph pipeline["Pipeline"]
+    direction LR
+    PA[Agent A] --> PB[Agent B] --> PC[Agent C]
+  end
+```
+
+```mermaid
+flowchart TD
+  subgraph fanout["Fan-Out / Fan-In"]
+    direction TB
+    K[Kernel] --> FA1[Agent 1]
+    K --> FA2[Agent 2]
+    K --> FA3[Agent 3]
+    FA1 --> C[Consolidate]
+    FA2 --> C
+    FA3 --> C
+  end
+```
+
+```mermaid
+flowchart TD
+  subgraph hierarchy["Hierarchy"]
+    direction TB
+    Sup[Supervisor] --> W1[Worker 1]
+    Sup --> W2[Worker 2]
+    W2 --> W2a[Sub-worker A]
+    W2 --> W2b[Sub-worker B]
+  end
+```
+
+```mermaid
+flowchart TD
+  subgraph consensus["Consensus"]
+    direction TB
+    P["Problem"] --> A1[Agent A]
+    P --> A2[Agent B]
+    P --> A3[Agent C]
+    A1 --> R[Referee]
+    A2 --> R
+    A3 --> R
+    R --> Best[Best Result]
+  end
+```
+
+```mermaid
+flowchart LR
+  subgraph adversarial["Adversarial"]
+    direction LR
+    Prod[Producer] -->|output| Crit[Critic]
+    Crit -->|feedback| Prod
+    Prod -->|refined| Final[Final Output]
+  end
+```
+
 **Pipeline**: Agents work in sequence. Agent A's output becomes Agent B's input. The code agent writes the function, the test agent writes the tests, the review agent checks both. Clean, predictable, but sequential.
 
 **Fan-Out / Fan-In**: The kernel dispatches work to multiple agents in parallel, then consolidates the results. Five agents each analyze a different module simultaneously. Fast, but requires careful consolidation.

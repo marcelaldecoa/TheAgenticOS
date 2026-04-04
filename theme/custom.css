@@ -199,6 +199,31 @@ strong {
 
 /* --- Zoom controls --- */
 
+/* --- Mermaid diagrams --- */
+
+.mermaid {
+  text-align: center;
+  margin: 1.5em 0;
+  padding: 1em;
+  background: rgba(74, 158, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(74, 158, 255, 0.08);
+  overflow-x: auto;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+@media print {
+  .mermaid {
+    page-break-inside: avoid;
+  }
+}
+
+/* --- Zoom controls --- */
+
 #zoom-controls {
   display: inline-flex;
   align-items: center;

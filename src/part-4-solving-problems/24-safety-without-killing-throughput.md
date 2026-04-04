@@ -40,6 +40,20 @@ Has the system successfully performed this type of action before? A task similar
 
 The Agentic OS implements safety through staged autonomy: different actions get different levels of oversight based on their risk profile.
 
+```mermaid
+flowchart LR
+  L0["Level 0\nFull Autonomy\n(read files, run tests)"] --> L1["Level 1\nNotify\n(create branch, add dep)"]
+  L1 --> L2["Level 2\nConfirm\n(modify prod config)"]
+  L2 --> L3["Level 3\nSupervised\n(auth logic, finances)"]
+  L3 --> L4["Level 4\nHuman-Initiated\n(delete prod data)"]
+
+  style L0 fill:#27ae60,stroke:#2ecc71,color:#fff
+  style L1 fill:#2ecc71,stroke:#27ae60,color:#fff
+  style L2 fill:#f39c12,stroke:#e67e22,color:#fff
+  style L3 fill:#e67e22,stroke:#d35400,color:#fff
+  style L4 fill:#c0392b,stroke:#e74c3c,color:#fff
+```
+
 ### Level 0: Full Autonomy
 
 The system acts without any human involvement. Reserved for low-risk, reversible, high-confidence actions. Reading files, running tests, generating code in a sandbox, formatting documents.
@@ -65,6 +79,17 @@ The mapping from action to level is not static. It evolves based on the system's
 ## Policy Enforcement Architecture
 
 Safety policies are enforced through the governance plane, using a layered architecture:
+
+```mermaid
+flowchart TD
+  A[Proposed Action] --> Pre["Pre-Action Policies\n• Capability check\n• Scope check\n• Risk check"]
+  Pre -->|pass| Exec[Execute Action]
+  Pre -->|blocked| Deny[Deny & Report]
+  Exec --> During["During-Action Monitoring\n• Resource consumption\n• Trajectory monitoring\n• Anomaly detection"]
+  During -->|anomaly| Pause[Pause & Escalate]
+  During -->|normal| Post["Post-Action Validation\n• Output validation\n• Regression detection\n• Audit logging"]
+  Post --> Done[Action Complete]
+```
 
 ### Pre-Action Policies
 

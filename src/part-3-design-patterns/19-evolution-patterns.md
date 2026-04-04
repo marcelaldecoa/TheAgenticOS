@@ -232,3 +232,31 @@ Contracts that are too restrictive, preventing useful extensions. Contracts that
 
 ### Related Patterns
 Capability Marketplace, Operator Adapters, Patternized Skills
+
+---
+
+## Applicability Guide
+
+Evolution patterns govern how the system grows and adapts over time. They are relevant for systems that will live beyond a prototype — but premature investment in evolution infrastructure is a common trap.
+
+### Decision Matrix
+
+| Pattern | Apply When | Do Not Apply When |
+|---|---|---|
+| **Patternized Skills** | You have recurring task types that benefit from codified instructions, tools, and strategies | Every task is unique; or you are still discovering what skills the system needs |
+| **Reusable Worker Archetypes** | Multiple projects need the same types of workers (coder, reviewer, researcher); standardization reduces duplication | You have a single project with bespoke worker types that will not be reused |
+| **Operator Adapters** | External tool APIs change frequently; you need an abstraction layer to isolate the system from API drift | You integrate with a single stable API that has not changed in years |
+| **Domain-Specific Agentic OS** | A vertical domain (legal, medical, financial) has unique requirements that justify a specialized system | A general-purpose system with skill packages is sufficient for your domain needs |
+| **Meta-Orchestrator** | You need to coordinate multiple independent Agentic OSs; cross-OS workflows are a real requirement | A single OS with internal modularity handles all your domains |
+| **Capability Marketplace** | Multiple teams develop and share skills, tools, and policies; a distribution mechanism is needed | A single team builds everything; sharing infrastructure adds overhead without benefit |
+| **Governed Extensibility** | Third parties or untrusted teams contribute extensions; you need safety guarantees for extensions | All extensions are built by a trusted core team; governance overhead is not justified |
+
+### Evolution Timing
+
+**Before launch**: Invest in **Operator Adapters** (insulate from external API changes) and **Patternized Skills** (codify what you already know works).
+
+**After 3 months of operation**: Introduce **Reusable Worker Archetypes** (standardize what you have learned) and evaluate whether **Governed Extensibility** is needed.
+
+**After 6+ months, multiple teams**: Consider **Capability Marketplace** and **Meta-Orchestrator** only if you have genuine multi-team or multi-OS coordination needs.
+
+**Domain-Specific Agentic OS** is a strategic decision, not an incremental one. Build it when you have enough domain expertise and operational evidence to justify the investment.
