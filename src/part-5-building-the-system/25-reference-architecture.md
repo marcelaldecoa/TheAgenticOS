@@ -21,13 +21,13 @@ block-beta
   TS["Tool & Skill Layer\nFile I/O, APIs, Databases, Search, Code Execution"]
   MP["Model Provider Layer\nLLM APIs, Embedding Models, Classifiers"]
 
-  style OI fill:#2d5a8e,stroke:#4a9eff,color:#e8f0fe
-  style GP fill:#2b1f4e,stroke:#b794f6,color:#e8f0fe
-  style CK fill:#1e3a5f,stroke:#4a9eff,color:#e8f0fe
-  style PF fill:#1e3a5f,stroke:#4a9eff,color:#e8f0fe
-  style MeP fill:#163050,stroke:#5ee7df,color:#e8f0fe
-  style TS fill:#163050,stroke:#5ee7df,color:#e8f0fe
-  style MP fill:#0f2140,stroke:#4a9eff,color:#7a9ec2
+  style OI fill:#1a5740,stroke:#3aaf7a,color:#e0f5ec
+  style GP fill:#2b1f4e,stroke:#a78bfa,color:#e0f5ec
+  style CK fill:#134a36,stroke:#3aaf7a,color:#e0f5ec
+  style PF fill:#134a36,stroke:#3aaf7a,color:#e0f5ec
+  style MeP fill:#0f3a2c,stroke:#2dd4bf,color:#e0f5ec
+  style TS fill:#0f3a2c,stroke:#2dd4bf,color:#e0f5ec
+  style MP fill:#0a2a1e,stroke:#3aaf7a,color:#7abfa8
 ```
 
 Each subsystem is independent and communicates through well-defined interfaces. You can replace the model provider without touching the kernel. You can swap the memory store without affecting the process fabric. This is not accidental — it is the core design principle.
@@ -185,8 +185,17 @@ The model provider selects the appropriate model based on these requirements. A 
 
 ### Provider Interface
 
-```text
-Request(task_type, prompt, constraints) → Response(content, metadata, cost)
+```mermaid
+sequenceDiagram
+  participant K as Kernel
+  participant MP as Model Provider
+  participant M as Model
+  K->>MP: Request(task_type, prompt, constraints)
+  MP->>MP: Select model by capability & budget
+  MP->>M: Invoke selected model
+  M-->>MP: Raw response
+  MP-->>K: Response(content, metadata, cost)
+  Note over K: metadata: tokens, model, latency, confidence
 ```
 
 Metadata includes token counts, model used, latency, and confidence signals. This information feeds back to the budget controller and the kernel's decision-making.

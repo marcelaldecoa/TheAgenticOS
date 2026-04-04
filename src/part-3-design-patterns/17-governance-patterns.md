@@ -89,6 +89,16 @@ A permission gate is a policy-defined checkpoint in the execution path. When an 
 ### Dynamics
 Agent proposes action → Gate intercepts → Authority reviews → Approve or deny → Execution resumes or aborts. Denied actions are logged with reasoning. Approved actions are logged with the approver's identity.
 
+```mermaid
+flowchart LR
+  A[Agent Proposes Action] --> G{Permission Gate}
+  G -->|Low Risk| Auto[Auto-Approve + Log]
+  G -->|High Risk| Rev[Authority Reviews]
+  Rev -->|Approved| Exec[Execute + Log]
+  Rev -->|Denied| Block[Block + Log Reason]
+  Auto --> Exec
+```
+
 ### Benefits
 Reversible control over irreversible actions. Clear accountability chain. Adjustable friction based on risk.
 
@@ -220,6 +230,19 @@ Define risk tiers (e.g., routine, elevated, critical). Classify actions into tie
 
 ### Dynamics
 Agent proposes action → Risk classifier assigns tier → Governance pipeline applies tier-appropriate controls → Action proceeds or gates. Risk classifications are refined over time based on incident analysis.
+
+```mermaid
+flowchart TD
+  Act[Proposed Action] --> Class{Risk Classifier}
+  Class -->|Routine| Log[Log Only]
+  Class -->|Elevated| Pol[Policy Check]
+  Class -->|Critical| Human[Human Approval]
+  Log --> Exec[Execute]
+  Pol -->|Pass| Exec
+  Pol -->|Fail| Block[Block]
+  Human -->|Approved| Exec
+  Human -->|Denied| Block
+```
 
 ### Benefits
 Appropriate friction. Fast routine operations. Protected critical operations.

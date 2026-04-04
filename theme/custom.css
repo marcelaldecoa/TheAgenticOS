@@ -41,17 +41,18 @@ h3 {
 /* --- Blockquotes (used for the book's epigraph style) --- */
 
 blockquote {
-  border-left: 4px solid #4a9eff;
+  border-left: 4px solid #10b981;
   padding: 0.8em 1.2em;
   margin: 1.5em 0;
-  background: rgba(74, 158, 255, 0.05);
+  background: rgba(16, 185, 129, 0.05);
   border-radius: 0 6px 6px 0;
   font-style: italic;
 }
 
 .navy blockquote,
-.ayu blockquote {
-  background: rgba(74, 158, 255, 0.08);
+.ayu blockquote,
+.coal blockquote {
+  background: rgba(16, 185, 129, 0.08);
 }
 
 /* --- Code blocks --- */
@@ -79,7 +80,7 @@ table {
 }
 
 table th {
-  background: rgba(74, 158, 255, 0.1);
+  background: rgba(16, 185, 129, 0.1);
   padding: 0.7em 1em;
   text-align: left;
   font-weight: 600;
@@ -92,7 +93,13 @@ table td {
 }
 
 table tr:hover td {
-  background: rgba(74, 158, 255, 0.03);
+  background: rgba(16, 185, 129, 0.03);
+}
+
+.navy table tr:hover td,
+.ayu table tr:hover td,
+.coal table tr:hover td {
+  background: rgba(16, 185, 129, 0.06);
 }
 
 /* --- Horizontal rules (part separators) --- */
@@ -205,10 +212,22 @@ strong {
   text-align: center;
   margin: 1.5em 0;
   padding: 1em;
-  background: rgba(74, 158, 255, 0.03);
+  background: rgba(16, 185, 129, 0.03);
   border-radius: 8px;
-  border: 1px solid rgba(74, 158, 255, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.08);
   overflow-x: auto;
+}
+
+.navy .mermaid,
+.ayu .mermaid,
+.coal .mermaid {
+  background: rgba(16, 185, 129, 0.04);
+  border-color: rgba(16, 185, 129, 0.12);
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
 }
 
 .mermaid svg {

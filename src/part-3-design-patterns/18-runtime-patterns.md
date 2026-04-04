@@ -89,6 +89,19 @@ A checkpoint captures: the current plan board state, working memory contents, co
 ### Dynamics
 Kernel reaches checkpoint trigger (step completion, time interval, risk boundary) → Serialize state → Store checkpoint → Continue execution. On failure: load most recent valid checkpoint → Adjust plan to skip completed steps → Resume.
 
+```mermaid
+flowchart TD
+  Exec[Executing] --> Trig{Checkpoint Trigger?}
+  Trig -->|Yes| Save[Save State]
+  Save --> Continue[Continue]
+  Trig -->|No| Continue
+  Continue --> Fail{Failure?}
+  Fail -->|No| Exec
+  Fail -->|Yes| Load[Load Last Checkpoint]
+  Load --> Adjust[Adjust Plan]
+  Adjust --> Exec
+```
+
 ### Benefits
 Resilient long-running tasks. Reduced waste on failure. Enables experimentation with rollback safety.
 
@@ -154,6 +167,16 @@ Define autonomy stages: supervised (human approves every action), guided (human 
 
 ### Dynamics
 New workflow begins at supervised → Track success rate, error rate, escalation rate → When metrics meet threshold, propose promotion → Human approves stage advancement → Repeat. Failures can trigger demotion.
+
+```mermaid
+flowchart LR
+  S[Supervised] -->|metrics met| G[Guided]
+  G -->|metrics met| A[Autonomous]
+  A -->|metrics met| Ad[Adaptive]
+  A -->|incident| G
+  G -->|incident| S
+  Ad -->|incident| A
+```
 
 ### Benefits
 Controlled risk exposure. Trust-building through evidence. Gradual optimization.

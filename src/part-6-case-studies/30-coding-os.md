@@ -208,25 +208,32 @@ This section provides a concrete implementation of the Coding OS using the **Mic
 
 ### Project Structure
 
-```text
-coding-os/
-├── agents/
-│   ├── kernel.py          # Cognitive kernel (SK orchestration)
-│   ├── coder.py           # Code generation agent
-│   ├── tester.py          # Test writing agent
-│   └── reviewer.py        # Code review agent
-├── plugins/
-│   ├── filesystem.py      # File operations plugin
-│   ├── git_plugin.py      # Git operations plugin
-│   └── code_exec.py       # Code execution plugin
-├── skills/
-│   └── python_backend.py  # Python backend skill definition
-├── governance/
-│   └── filters.py         # Policy enforcement via SK filters
-├── mcp_servers/
-│   ├── filesystem/        # File read/write MCP server
-│   └── git/               # Git operations MCP server
-└── main.py                # Entry point
+```mermaid
+flowchart TD
+  subgraph CodingOS["coding-os/"]
+    subgraph Agents["agents/"]
+      KernelPy["kernel.py\nCognitive kernel"]
+      CoderPy["coder.py\nCode generation"]
+      TesterPy["tester.py\nTest writing"]
+      ReviewerPy["reviewer.py\nCode review"]
+    end
+    subgraph Plugins["plugins/"]
+      FS["filesystem.py\nFile operations"]
+      Git["git_plugin.py\nGit operations"]
+      Exec["code_exec.py\nCode execution"]
+    end
+    subgraph Skills["skills/"]
+      PB["python_backend.py\nSkill definition"]
+    end
+    subgraph Governance["governance/"]
+      Filters["filters.py\nPolicy enforcement"]
+    end
+    subgraph MCP["mcp_servers/"]
+      MCPFS["filesystem/\nFile read/write"]
+      MCPGit["git/\nGit operations"]
+    end
+    MainPy["main.py\nEntry point"]
+  end
 ```
 
 ### Plugins (SK Skills)

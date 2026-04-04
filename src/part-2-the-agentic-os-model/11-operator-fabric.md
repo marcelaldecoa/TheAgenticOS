@@ -45,19 +45,28 @@ Model Context Protocol (MCP) servers are like peripheral subsystems in an OS —
 
 All available operators are registered in a central registry:
 
-```text
-Operator: file_read
-  Input:  { path: string }
-  Output: { content: string }
-  Permissions: read
-  Risk: low
-
-Operator: database_write
-  Input:  { table: string, record: object }
-  Output: { id: string, success: boolean }
-  Permissions: write
-  Risk: medium
-  Approval: required for production tables
+```mermaid
+classDiagram
+  class file_read {
+    +Input: path: string
+    +Output: content: string
+    +Permissions: read
+    +Risk: low
+  }
+  class database_write {
+    +Input: table: string, record: object
+    +Output: id: string, success: boolean
+    +Permissions: write
+    +Risk: medium
+    +Approval: required for production
+  }
+  class OperatorRegistry {
+    +discover(capability) operators[]
+    +register(operator) void
+    +getPermissions(operator) capability[]
+  }
+  OperatorRegistry --> file_read
+  OperatorRegistry --> database_write
 ```
 
 The registry enables discovery, documentation, and governance. The kernel consults it when deciding which operators a worker can access.

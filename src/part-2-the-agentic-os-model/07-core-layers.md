@@ -17,13 +17,13 @@ block-beta
   GP["Governance Plane\nPolicies, permissions, audit"]
   EE["Execution Environment\nInfrastructure, models, runtimes"]
 
-  style EL fill:#2d5a8e,stroke:#4a9eff,color:#e8f0fe
-  style CK fill:#1e3a5f,stroke:#4a9eff,color:#e8f0fe
-  style PF fill:#1e3a5f,stroke:#4a9eff,color:#e8f0fe
-  style MP fill:#163050,stroke:#5ee7df,color:#e8f0fe
-  style OF fill:#163050,stroke:#5ee7df,color:#e8f0fe
-  style GP fill:#2b1f4e,stroke:#b794f6,color:#e8f0fe
-  style EE fill:#0f2140,stroke:#4a9eff,color:#7a9ec2
+  style EL fill:#1a5740,stroke:#3aaf7a,color:#e0f5ec
+  style CK fill:#134a36,stroke:#3aaf7a,color:#e0f5ec
+  style PF fill:#134a36,stroke:#3aaf7a,color:#e0f5ec
+  style MP fill:#0f3a2c,stroke:#2dd4bf,color:#e0f5ec
+  style OF fill:#0f3a2c,stroke:#2dd4bf,color:#e0f5ec
+  style GP fill:#2b1f4e,stroke:#a78bfa,color:#e0f5ec
+  style EE fill:#0a2a1e,stroke:#3aaf7a,color:#7abfa8
 ```
 
 ## Layer Responsibilities

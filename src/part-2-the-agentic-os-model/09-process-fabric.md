@@ -38,14 +38,20 @@ Isolation provides the inverse: clarity, safety, containment, and debuggability.
 
 Every process operates under a task contract:
 
-```text
-Task:        What to accomplish
-Context:     What information is provided
-Capabilities: What tools and resources are available
-Constraints: What is not allowed
-Success:     How to determine completion
-Failure:     How to handle errors and when to escalate
-Output:      What to return to the kernel
+```mermaid
+flowchart LR
+  subgraph Contract["Task Contract"]
+    direction TB
+    T["Task: What to accomplish"]
+    Ctx["Context: Information provided"]
+    Cap["Capabilities: Tools & resources available"]
+    Con["Constraints: What is not allowed"]
+    Suc["Success: How to determine completion"]
+    Fail["Failure: Error handling & escalation"]
+    Out["Output: What to return to kernel"]
+  end
+  K[Kernel] -->|defines| Contract
+  Contract -->|governs| W[Worker Process]
 ```
 
 This contract is the interface between the kernel and the process fabric. It makes delegation explicit, inspectable, and governable.

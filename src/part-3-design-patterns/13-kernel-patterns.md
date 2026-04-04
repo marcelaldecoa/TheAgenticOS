@@ -20,6 +20,17 @@ When the kernel receives a new request, it must decide: Is this a simple task or
 ### Structure
 The intent router classifies requests along dimensions: complexity (simple → compound → complex), domain (code, research, operations), risk level, and required capabilities. Each classification maps to an execution strategy.
 
+```mermaid
+flowchart TD
+  R[Request] --> C{Classify}
+  C -->|Simple| D[Direct Execution]
+  C -->|Compound| P[Decompose & Parallel]
+  C -->|Complex| F[Full Planning]
+  D --> O[Output]
+  P --> Cons[Consolidate] --> O
+  F --> Plan[Plan-Act-Check-Adapt] --> Cons
+```
+
 ### Dynamics
 Simple requests are executed directly. Compound requests are decomposed into independent subtasks. Complex requests trigger full planning with iterative refinement.
 
@@ -62,6 +73,9 @@ Plans are inspectable and adjustable. Execution is focused. Adaptation is explic
 ### Tradeoffs
 The overhead of maintaining a plan is not justified for trivial tasks. The planner must be invoked again after each step, adding latency.
 
+### Failure Modes
+The planner produces an overly detailed plan that constrains the executor unnecessarily. The executor deviates from the plan without reporting back, causing the planner to lose coherence. The plan-review cycle becomes a bottleneck when every step requires a full replanning pass.
+
 ### Related Patterns
 Intent Router, Execution Loop Supervisor, Reflective Retry
 
@@ -83,11 +97,29 @@ When the kernel has multiple tasks to execute, it must decide what runs first, w
 ### Structure
 The scheduler maintains a priority queue of tasks, each annotated with risk level, dependencies, resource requirements, and policy status. It selects the next task to execute based on a scoring function that balances urgency, readiness, and governance compliance.
 
+```mermaid
+flowchart TD
+  Q[Task Queue] --> Score[Score: urgency × readiness × policy]
+  Score --> Check{Policy Gate}
+  Check -->|Cleared| Exec[Execute]
+  Check -->|Blocked| Wait[Wait for Approval]
+  Check -->|Denied| Skip[Skip / Escalate]
+  Wait -->|Approved| Exec
+  Exec --> Next[Next Task]
+  Skip --> Next
+```
+
+### Dynamics
+The scheduler continuously re-evaluates the queue as new tasks arrive, existing tasks complete, and policy decisions are returned. A task that was blocked may become ready when approval arrives. A task that was ready may be preempted by a higher-priority arrival. The scoring function runs on every cycle, not once at submission.
+
 ### Benefits
 High-priority safe work proceeds immediately. Risky work waits for appropriate approval without blocking the rest.
 
 ### Tradeoffs
 Scheduling logic adds complexity. Poor priority functions lead to starvation of important work.
+
+### Failure Modes
+Priority inversion — a low-risk, low-priority task runs while a high-priority but policy-gated task starves waiting for approval. The scoring function over-weights urgency, causing risky work to bypass governance. Scheduling overhead dominates when the task queue is small and contention is low.
 
 ### Related Patterns
 Permission Gate, Staged Autonomy
@@ -110,11 +142,35 @@ When a task is decomposed and delegated to multiple workers, their individual ou
 ### Structure
 The consolidator collects worker outputs, identifies overlaps and conflicts, resolves contradictions (or flags them for escalation), and synthesizes a unified result that addresses the original intent.
 
+```mermaid
+flowchart LR
+  W1[Worker 1\nResult] --> Col[Consolidator]
+  W2[Worker 2\nResult] --> Col
+  W3[Worker 3\nResult] --> Col
+  Col --> Ov{Overlaps?}
+  Ov -->|Yes| Merge[Merge & Deduplicate]
+  Ov -->|No| Combine[Combine]
+  Col --> Conf{Conflicts?}
+  Conf -->|Yes| Resolve[Resolve or Escalate]
+  Conf -->|No| Pass[Pass Through]
+  Merge --> Synth[Synthesize]
+  Combine --> Synth
+  Resolve --> Synth
+  Pass --> Synth
+  Synth --> Out[Unified Result]
+```
+
+### Dynamics
+Consolidation begins when all expected workers complete or when a timeout forces partial consolidation. The consolidator first aligns outputs to the original intent, then performs deduplication, conflict detection, and synthesis in a single pass. When conflicts are irreconcilable, the consolidator produces a result with explicit caveats rather than silently choosing a side.
+
 ### Benefits
 Coherent output despite distributed execution. Contradictions are surfaced, not hidden.
 
 ### Tradeoffs
 Consolidation itself requires model invocations and context. Complex consolidation can be as expensive as the original work.
+
+### Failure Modes
+The consolidator silently drops a worker's output because it does not fit the expected format. Contradictions are resolved by choosing the last result rather than the best, hiding minority viewpoints. Partial consolidation under timeout produces an incomplete result that appears complete.
 
 ### Related Patterns
 Subagent as Process, Reviewer Process
@@ -137,11 +193,31 @@ Failures in agentic systems are common: tools return errors, models produce inva
 ### Structure
 On failure, the kernel (or worker) analyzes the error: What went wrong? Is it transient or structural? If transient, retry with backoff. If structural, modify the approach (different tool, different decomposition, more context) and try again.
 
+```mermaid
+flowchart TD
+  Fail[Action Failed] --> Analyze{Analyze Failure}
+  Analyze -->|Transient| Retry[Retry with Backoff]
+  Analyze -->|Structural| Modify[Modify Approach]
+  Analyze -->|Unknown| Escalate[Escalate]
+  Retry --> Result{Success?}
+  Modify --> Result
+  Result -->|Yes| Done[Continue]
+  Result -->|No| Count{Retry Budget?}
+  Count -->|Remaining| Analyze
+  Count -->|Exhausted| Escalate
+```
+
+### Dynamics
+The first failure triggers analysis, not retry. The analysis classifies the failure and selects a strategy. Each subsequent failure feeds back into analysis with accumulated failure history, enabling the system to detect patterns (e.g., three different transient errors suggest a systemic issue, not a transient one). The retry budget decreases with each attempt, and the analysis becomes more conservative as attempts are consumed.
+
 ### Benefits
 Higher success rate with fewer wasted invocations. Structural problems are addressed, not repeated.
 
 ### Tradeoffs
 Reflection adds latency. The analysis itself can be wrong.
+
+### Failure Modes
+The analysis misclassifies a structural failure as transient, wasting retry budget on an approach that will never succeed. The system modifies its approach so aggressively that the new approach is worse than the original. Reflection consumes significant context budget, leaving less room for the actual retry.
 
 ### Related Patterns
 Recovery Process, Failure Containment
@@ -167,11 +243,30 @@ The supervisor tracks loop metrics: iteration count, progress indicators, resour
 - No measurable progress is made across N iterations
 - Resource budget is exhausted
 
+```mermaid
+flowchart TD
+  Loop[Kernel Loop Cycle] --> Track[Track Metrics]
+  Track --> P{Progress?}
+  P -->|Yes| Budget{Budget OK?}
+  P -->|No| Stall[Stall Counter + 1]
+  Budget -->|Yes| Continue[Continue Loop]
+  Budget -->|No| Terminate[Terminate + Log]
+  Stall --> Thresh{Stall > N?}
+  Thresh -->|No| Continue
+  Thresh -->|Yes| Terminate
+```
+
+### Dynamics
+The supervisor runs as a parallel observer, not as a gate within the loop. It samples progress at each cycle boundary — comparing the current state board to the previous one. Progress is measured by concrete indicators: tasks completed, outputs produced, state changes recorded. If the loop is making progress (even slowly), the supervisor permits continuation. If the loop is cycling without state change, the stall counter increments. Termination includes a diagnostic snapshot: last N iterations, resource consumption, and the state at which progress stalled.
+
 ### Benefits
 Prevents runaway execution. Provides diagnostic data for post-mortem analysis.
 
 ### Tradeoffs
 A strict supervisor may kill useful work that is simply slow. A lenient supervisor may waste resources.
+
+### Failure Modes
+Progress indicators are too coarse — the loop appears to make progress (new outputs generated) but is actually oscillating between equivalent states. The supervisor terminates a task that was one iteration away from completion. The stall threshold is set uniformly when different task types have fundamentally different iteration patterns.
 
 ### Related Patterns
 Resource Envelope, Context Budget Enforcement
