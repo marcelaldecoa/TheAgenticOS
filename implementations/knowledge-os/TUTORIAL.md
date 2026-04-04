@@ -1,4 +1,4 @@
-﻿# Tutorial: Knowledge OS
+# Tutorial: Knowledge OS
 
 This walkthrough demonstrates how to capture, organize, validate, and retrieve organizational knowledge using specialized agents.
 

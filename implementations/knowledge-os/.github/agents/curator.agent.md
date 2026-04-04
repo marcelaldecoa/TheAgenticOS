@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Knowledge curator. Use when organizing knowledge, deduplicating artifacts, linking related content, resolving conflicts between sources, or improving knowledge graph connections."
 tools: [read, search, edit]
 ---

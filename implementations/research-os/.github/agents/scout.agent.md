@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Research scout. Use when searching for sources, gathering information, collecting references, or performing broad web searches. Optimized for recall — finds everything potentially relevant."
 tools: [web, search, read]
 ---

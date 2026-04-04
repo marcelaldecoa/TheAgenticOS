@@ -1,4 +1,4 @@
-﻿# Coding OS — Copilot Instructions
+# Coding OS — Copilot Instructions
 
 This workspace implements a **Coding OS** — an Agentic Operating System for software development.
 

@@ -1,4 +1,4 @@
-﻿# Escalation Package Template
+# Escalation Package Template
 
 ## Escalation
 

@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Delegate to Knowledge OS. Use when the coordinator needs documentation updates, knowledge retrieval, freshness validation, or known issue registration from the Knowledge OS."
 tools: [read, search, edit]
 user-invocable: false

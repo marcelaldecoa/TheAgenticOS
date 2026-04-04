@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Support investigator. Use when diagnosing unknown issues, searching logs, analyzing system behavior, or performing root cause analysis."
 tools: [read, search, execute]
 ---

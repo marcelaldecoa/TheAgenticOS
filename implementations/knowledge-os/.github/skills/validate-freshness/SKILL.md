@@ -1,4 +1,4 @@
-﻿---
+---
 name: validate-freshness
 description: "Check knowledge base freshness. Use when auditing stale content, verifying documentation accuracy, checking for broken references, or performing periodic knowledge maintenance."
 ---

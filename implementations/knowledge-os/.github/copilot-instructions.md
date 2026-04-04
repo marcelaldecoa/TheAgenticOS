@@ -1,4 +1,4 @@
-﻿# Knowledge OS — Copilot Instructions
+# Knowledge OS — Copilot Instructions
 
 This workspace implements a **Knowledge OS** — an Agentic Operating System for organizational knowledge management.
 

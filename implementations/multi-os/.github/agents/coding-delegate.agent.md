@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Delegate to Coding OS. Use when the coordinator needs code investigation, bug fixes, feature implementation, or code review from the Coding OS."
 tools: [read, search, edit, execute]
 user-invocable: false

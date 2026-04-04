@@ -1,4 +1,4 @@
-﻿"""
+"""
 FastAPI application for the To-Do API.
 """
 from fastapi import FastAPI, HTTPException
@@ -34,8 +34,8 @@ def create_todo(body: TodoCreate):
 
 
 @app.get("/todos", response_model=list[TodoResponse])
-def list_todos(sort: str = ""):
-    todos = store.list_all(sort)
+def list_todos(sort: str = "", status: str = ""):
+    todos = store.list_all(sort, status)
     return [
         TodoResponse(
             id=t.id, title=t.title, completed=t.completed, priority=t.priority.value

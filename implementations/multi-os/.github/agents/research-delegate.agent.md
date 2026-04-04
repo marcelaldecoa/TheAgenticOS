@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Delegate to Research OS. Use when the coordinator needs competitive analysis, literature reviews, market research, or evidence gathering from the Research OS."
 tools: [web, read, search]
 user-invocable: false

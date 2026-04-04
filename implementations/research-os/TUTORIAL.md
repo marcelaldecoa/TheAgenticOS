@@ -1,4 +1,4 @@
-﻿# Tutorial: Research OS
+# Tutorial: Research OS
 
 This walkthrough demonstrates how to conduct structured research using specialized agents that scout, analyze, synthesize, and critique.
 

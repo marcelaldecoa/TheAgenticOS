@@ -1,4 +1,4 @@
-﻿---
+---
 name: competitive-analysis
 description: "Conduct competitive analysis research. Use when analyzing competitors, comparing pricing strategies, evaluating market positioning, or assessing competitive landscape."
 ---

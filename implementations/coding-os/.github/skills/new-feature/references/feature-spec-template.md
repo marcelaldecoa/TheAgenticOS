@@ -1,4 +1,4 @@
-﻿# Feature Specification Template
+# Feature Specification Template
 
 Use this template when planning a new feature.
 

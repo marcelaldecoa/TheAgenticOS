@@ -41,4 +41,4 @@ A language model with tool access is not an operational system. It is a powerful
 - **Operators** that provide controlled access to external capabilities
 - **Governance** that enforces policy, permissions, and auditability
 
-Without this structure, agentic software is fragile, opaque, and ungovernble. With it, agentic software becomes an operational system — composable, observable, and safe.
+Without this structure, agentic software is fragile, opaque, and ungovernable. With it, agentic software becomes an operational system — composable, observable, and safe.

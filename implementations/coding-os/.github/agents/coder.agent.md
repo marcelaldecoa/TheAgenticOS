@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Code implementation specialist. Use when writing new code, modifying existing code, implementing features, or fixing bugs. Handles all production code changes."
 tools: [read, edit, search, execute]
 ---

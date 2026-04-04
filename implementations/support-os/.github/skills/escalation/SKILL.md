@@ -1,4 +1,4 @@
-﻿---
+---
 name: escalation
 description: "Prepare an escalation package for human agents or engineering. Use when an issue exceeds automated resolution capability, requires engineering intervention, or involves a critical customer situation."
 ---

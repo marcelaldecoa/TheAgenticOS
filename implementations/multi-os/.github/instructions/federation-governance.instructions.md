@@ -1,4 +1,5 @@
-﻿---
+---
+applyTo: "**"
 description: "Use when handling cross-OS workflows. Enforces data classification, PII redaction, correlation ID tracking, and audit trail requirements at federation boundaries."
 ---
 

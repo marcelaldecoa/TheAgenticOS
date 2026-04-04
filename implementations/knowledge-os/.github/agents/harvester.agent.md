@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Knowledge harvester. Use when extracting knowledge from meeting notes, documents, commits, conversations, or any raw content. Captures decisions, rationale, facts, and action items."
 tools: [read, search, edit]
 ---

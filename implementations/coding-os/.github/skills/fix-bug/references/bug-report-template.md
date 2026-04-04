@@ -1,4 +1,4 @@
-﻿# Bug Report Template
+# Bug Report Template
 
 Use this template when documenting a bug fix.
 

@@ -1,4 +1,4 @@
-﻿# Multi-OS Coordination — Copilot Instructions
+# Multi-OS Coordination — Copilot Instructions
 
 This workspace demonstrates **Multi-OS Federation** — coordinating independent Agentic Operating Systems.
 

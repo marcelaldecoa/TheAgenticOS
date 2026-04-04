@@ -1,4 +1,4 @@
-﻿---
+---
 description: "Test specialist. Use when writing unit tests, integration tests, running test suites, or verifying code changes. Handles all test-related work."
 tools: [read, edit, search, execute]
 ---
