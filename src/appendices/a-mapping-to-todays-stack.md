@@ -22,18 +22,22 @@ The kernel — intent routing, planning, decomposition, scheduling — maps to *
 
 ### Implementation Guidance
 
-**Start with a single orchestration framework.** The kernel abstraction does not require building a custom orchestrator from scratch. Use LangGraph if you need fine-grained control over execution flow. Use Semantic Kernel if you want automatic planning over a set of registered functions. Use the Assistants API if you want managed infrastructure.
+**Start with a single orchestration framework.** The kernel abstraction does not require building a custom orchestrator from scratch. The reference implementations in Part VI use the **Microsoft Agent Framework (Semantic Kernel)** — it provides `ChatCompletionAgent` for individual workers, orchestration patterns (Sequential, Concurrent, Handoff, GroupChat) for coordination, and plugins (`@kernel_function`) for tool integration.
 
-**The kernel loop** (perceive → interpret → plan → delegate → monitor → consolidate → adapt) maps to a state machine. In LangGraph, this is a graph with nodes for each phase and conditional edges for routing. In Semantic Kernel, this is a planner that selects and sequences plugins.
+**The kernel loop** (perceive → interpret → plan → delegate → monitor → consolidate → adapt) maps to orchestration patterns. In Semantic Kernel, the orchestration type determines the coordination model:
 
 ```text
-Agentic OS Concept    →  LangGraph Implementation
-─────────────────────────────────────────────────
-Intent Router         →  Conditional edge from entry node
-Planner               →  Subgraph that produces a plan state
-Executor              →  Worker nodes that execute plan steps
-Result Consolidator   →  Aggregation node that merges outputs
-Execution Loop        →  Graph cycle with exit conditions
+Agentic OS Concept    →  Semantic Kernel Implementation
+───────────────────────────────────────────────────────
+Intent Router         →  Agent with routing logic or HandoffOrchestration
+Planner               →  Agent with planning instructions
+Workers               →  ChatCompletionAgent instances with scoped plugins
+Pipeline              →  SequentialOrchestration
+Fan-Out/Fan-In        →  ConcurrentOrchestration
+Adversarial Review    →  GroupChatOrchestration
+Dynamic Routing       →  HandoffOrchestration
+Tools/Operators       →  Plugins (@kernel_function) and MCP servers
+Governance            →  Function filters (on_function_invocation)
 ```
 
 ## Process Fabric
@@ -231,12 +235,12 @@ For a team building their first Agentic OS, here is a practical starting stack:
 
 | Layer | Starting Choice | Why |
 |---|---|---|
-| **Kernel** | LangGraph | Flexible graph-based orchestration with state management and human-in-the-loop |
-| **Process Fabric** | In-process agents + E2B for code execution | Simple to start; sandboxed code execution for safety |
+| **Kernel** | Semantic Kernel (Python) | Agent Framework with built-in orchestration patterns (Sequential, Handoff, GroupChat), plugin model, and multi-model support |
+| **Process Fabric** | `ChatCompletionAgent` + E2B for code execution | Each agent is a scoped worker with its own plugins; E2B for sandboxed code execution |
 | **Memory** | pgvector (semantic) + PostgreSQL (episodic) | Single database for both vector and structured storage |
-| **Governance** | LangSmith (observability) + custom middleware (policies) | Visibility from day one; policies as code |
-| **Tools** | MCP servers + direct function calling | Standards-based tool integration |
-| **Models** | LiteLLM → Claude/GPT-4.1 | Multi-model flexibility; switch providers without code changes |
+| **Governance** | SK function filters + Langfuse (observability) | Filters enforce policies at every function call; Langfuse for tracing and cost tracking |
+| **Tools** | SK Plugins (`@kernel_function`) + MCP servers | Plugins for local tools; MCP servers for isolated/external tools |
+| **Models** | Azure OpenAI (via SK connectors) | Native SK integration; multi-model via service selection |
 
 This stack can be deployed as a single application initially and decomposed into services as scale demands.
 

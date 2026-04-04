@@ -1,4 +1,4 @@
-﻿# Coding OS
+# Coding OS
 
 The most natural application of the Agentic OS model is software development itself. Developers already think in processes, contexts, tools, and workflows. The mental model transfers directly. This chapter walks through a Coding OS — an Agentic OS specialized for building, maintaining, and evolving software.
 
@@ -204,463 +204,418 @@ That is the shift from tool to operating system, applied to the domain where it 
 
 ## Reference Implementation
 
-This section provides a concrete implementation of the Coding OS using LangGraph, MCP, and the starter stack from Appendix A.
+This section provides a concrete implementation of the Coding OS using the **Microsoft Agent Framework** (Semantic Kernel) in Python, with MCP servers for tool isolation.
 
 ### Project Structure
 
 ```text
 coding-os/
 ├── agents/
-│   ├── kernel.py          # Cognitive kernel (LangGraph graph)
-│   ├── coder.py           # Code generation worker
-│   ├── tester.py          # Test writing worker
-│   └── reviewer.py        # Code review worker
+│   ├── kernel.py          # Cognitive kernel (SK orchestration)
+│   ├── coder.py           # Code generation agent
+│   ├── tester.py          # Test writing agent
+│   └── reviewer.py        # Code review agent
+├── plugins/
+│   ├── filesystem.py      # File operations plugin
+│   ├── git_plugin.py      # Git operations plugin
+│   └── code_exec.py       # Code execution plugin
 ├── skills/
 │   └── python_backend.py  # Python backend skill definition
-├── memory/
-│   └── store.py           # Memory plane (pgvector + PostgreSQL)
 ├── governance/
-│   └── middleware.py       # Policy enforcement middleware
+│   └── filters.py         # Policy enforcement via SK filters
 ├── mcp_servers/
 │   ├── filesystem/        # File read/write MCP server
 │   └── git/               # Git operations MCP server
-├── tools/
-│   └── registry.py        # Tool registry and capability scoping
 └── main.py                # Entry point
 ```
 
-### State Definition
+### Plugins (SK Skills)
 
-The shared state is the Operational State Board — every worker reads and writes to it:
-
-```python
-from typing import TypedDict, Literal, Annotated
-from langgraph.graph import add_messages
-
-class CodingOSState(TypedDict):
-    # Intent
-    request: str
-    intent: dict  # structured intent from kernel
-    complexity: Literal["simple", "compound", "complex"]
-
-    # Plan
-    plan: list[dict]       # task graph: [{id, task, worker, depends_on, status}]
-    current_step: int
-
-    # Execution
-    messages: Annotated[list, add_messages]
-    files_modified: list[str]
-    test_results: dict
-    review_findings: list[str]
-
-    # Governance
-    autonomy_level: int    # 0-4
-    budget_remaining: int  # tokens
-    approval_pending: bool
-
-    # Result
-    result: str
-    status: Literal["planning", "executing", "reviewing", "complete", "failed"]
-```
-
-### Cognitive Kernel
-
-The kernel is a LangGraph graph that routes, plans, delegates, and consolidates:
+In Semantic Kernel, capabilities are exposed as **plugins** — classes with `@kernel_function` decorated methods. Each plugin is the equivalent of an operator in the Agentic OS model:
 
 ```python
-from langgraph.graph import StateGraph, START, END
-from langgraph.prebuilt import ToolNode
-from langchain_core.messages import SystemMessage, HumanMessage
-import litellm
+# plugins/filesystem.py
+import os
+from typing import Annotated
+from semantic_kernel.functions import kernel_function
 
-KERNEL_INSTRUCTIONS = """You are the cognitive kernel of a Coding OS.
-Your job is to interpret intent, create plans, and coordinate workers.
-You do NOT write code yourself — you delegate to specialized workers.
+# Governance: restrict to project directory
+ALLOWED_ROOT = os.environ.get("PROJECT_ROOT", "/workspace")
 
-For each request:
-1. Classify complexity (simple, compound, complex)
-2. Produce a plan: a list of steps with worker assignments
-3. Steps: analyze, implement, test, review
-4. Each step has: id, task description, worker type, dependencies
-"""
+class FilesystemPlugin:
+    """File operations scoped to the project directory."""
 
-def classify_and_plan(state: CodingOSState) -> dict:
-    """Intent Router + Planner: classify request and produce task graph."""
-    response = litellm.completion(
-        model="claude-sonnet-4-20250514",
-        messages=[
-            {"role": "system", "content": KERNEL_INSTRUCTIONS},
-            {"role": "user", "content": f"Request: {state['request']}\n\n"
-             "Respond with JSON: {complexity, intent, plan}"}
-        ],
-        response_format={"type": "json_object"},
-        max_tokens=2000,
-    )
-    parsed = json.loads(response.choices[0].message.content)
-    return {
-        "complexity": parsed["complexity"],
-        "intent": parsed["intent"],
-        "plan": parsed["plan"],
-        "current_step": 0,
-        "status": "executing",
-    }
+    @kernel_function(description="Read a file from the project directory.")
+    def file_read(
+        self, path: Annotated[str, "Relative path to the file"]
+    ) -> Annotated[str, "File contents"]:
+        full_path = os.path.join(ALLOWED_ROOT, path)
+        # Security: prevent path traversal
+        if not os.path.realpath(full_path).startswith(os.path.realpath(ALLOWED_ROOT)):
+            raise PermissionError(f"Access denied: {path} is outside project scope")
+        with open(full_path, "r") as f:
+            return f.read()
 
-def route_by_complexity(state: CodingOSState) -> str:
-    """Intent Router: skip planning for simple tasks."""
-    if state["complexity"] == "simple":
-        return "execute_simple"
-    return "execute_plan"
+    @kernel_function(description="Write content to a file in the project directory.")
+    def file_write(
+        self,
+        path: Annotated[str, "Relative path to the file"],
+        content: Annotated[str, "Content to write"],
+    ) -> Annotated[str, "Confirmation message"]:
+        full_path = os.path.join(ALLOWED_ROOT, path)
+        if not os.path.realpath(full_path).startswith(os.path.realpath(ALLOWED_ROOT)):
+            raise PermissionError(f"Access denied: {path} is outside project scope")
+        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+        with open(full_path, "w") as f:
+            f.write(content)
+        return f"Written {len(content)} bytes to {path}"
 
-def execute_simple(state: CodingOSState) -> dict:
-    """Direct execution for simple tasks (no decomposition)."""
-    from agents.coder import run_coder
-    result = run_coder(state["request"], state["intent"])
-    return {"result": result, "status": "complete"}
-
-def execute_plan_step(state: CodingOSState) -> dict:
-    """Execute the next step in the task graph."""
-    plan = state["plan"]
-    step_idx = state["current_step"]
-
-    if step_idx >= len(plan):
-        return {"status": "reviewing"}
-
-    step = plan[step_idx]
-    worker_map = {
-        "coder": "agents.coder",
-        "tester": "agents.tester",
-        "reviewer": "agents.reviewer",
-    }
-    # Dynamic dispatch to the appropriate worker
-    module = importlib.import_module(worker_map[step["worker"]])
-    result = module.run(step["task"], state)
-
-    plan[step_idx]["status"] = "complete"
-    plan[step_idx]["result"] = result
-    return {"plan": plan, "current_step": step_idx + 1}
-
-def should_continue_plan(state: CodingOSState) -> str:
-    if state["status"] == "reviewing":
-        return "review"
-    if state["budget_remaining"] <= 0:
-        return "budget_exceeded"
-    return "next_step"
-
-def consolidate(state: CodingOSState) -> dict:
-    """Result Consolidator: merge all worker outputs."""
-    outputs = [s["result"] for s in state["plan"] if "result" in s]
-    return {
-        "result": "\n\n".join(outputs),
-        "status": "complete",
-    }
-
-# Build the graph
-graph = StateGraph(CodingOSState)
-graph.add_node("classify_and_plan", classify_and_plan)
-graph.add_node("execute_simple", execute_simple)
-graph.add_node("execute_plan_step", execute_plan_step)
-graph.add_node("review", review_node)
-graph.add_node("consolidate", consolidate)
-
-graph.add_edge(START, "classify_and_plan")
-graph.add_conditional_edges("classify_and_plan", route_by_complexity, {
-    "execute_simple": "execute_simple",
-    "execute_plan": "execute_plan_step",
-})
-graph.add_conditional_edges("execute_plan_step", should_continue_plan, {
-    "next_step": "execute_plan_step",
-    "review": "review",
-    "budget_exceeded": "consolidate",
-})
-graph.add_edge("execute_simple", END)
-graph.add_edge("review", "consolidate")
-graph.add_edge("consolidate", END)
-
-coding_os = graph.compile()
+    @kernel_function(description="Search for files matching a glob pattern.")
+    def file_search(
+        self,
+        pattern: Annotated[str, "Glob pattern to search for"],
+    ) -> Annotated[list[str], "Matching file paths"]:
+        import glob
+        matches = glob.glob(
+            os.path.join(ALLOWED_ROOT, pattern), recursive=True
+        )
+        return [os.path.relpath(m, ALLOWED_ROOT) for m in matches[:50]]
 ```
 
-### Coder Worker (Subagent)
+```python
+# plugins/git_plugin.py
+import subprocess
+from typing import Annotated
+from semantic_kernel.functions import kernel_function
 
-Each worker is a scoped process with its own system prompt, tools, and constraints:
+class GitPlugin:
+    """Git operations for version control."""
+
+    @kernel_function(description="Get the diff of current changes.")
+    def git_diff(
+        self, ref: Annotated[str, "Git reference to diff against"] = "HEAD"
+    ) -> Annotated[str, "The diff output"]:
+        result = subprocess.run(
+            ["git", "diff", ref], capture_output=True, text=True, timeout=30
+        )
+        return result.stdout[:10000]
+
+    @kernel_function(description="Get recent commit history.")
+    def git_log(
+        self, count: Annotated[int, "Number of commits"] = 10
+    ) -> Annotated[str, "Commit log"]:
+        result = subprocess.run(
+            ["git", "log", f"-{count}", "--oneline"],
+            capture_output=True, text=True,
+        )
+        return result.stdout
+
+    @kernel_function(description="Create and checkout a new branch.")
+    def git_create_branch(
+        self, name: Annotated[str, "Branch name"]
+    ) -> Annotated[str, "Confirmation"]:
+        subprocess.run(["git", "checkout", "-b", name], check=True)
+        return f"Created and checked out branch: {name}"
+```
+
+### Agents (Subagents as ChatCompletionAgent)
+
+Each worker in the Agentic OS maps to a `ChatCompletionAgent` with scoped plugins and instructions:
 
 ```python
 # agents/coder.py
-from langchain_core.messages import SystemMessage
-from tools.registry import get_tools_for_worker
+from semantic_kernel.agents import ChatCompletionAgent
+from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
 
-CODER_INSTRUCTIONS = """You are a code implementation specialist.
+def create_coder_agent(service: AzureChatCompletion) -> ChatCompletionAgent:
+    """Create a coder agent with file and code execution capabilities."""
+    from plugins.filesystem import FilesystemPlugin
+    from plugins.code_exec import CodeExecPlugin
+
+    return ChatCompletionAgent(
+        service=service,
+        name="Coder",
+        instructions="""You are a code implementation specialist.
 You write clean, tested, production-ready code.
 Follow the project's existing patterns and conventions.
 
 Rules:
 - Read existing code before modifying it
-- Follow the language's idioms and style guide
+- Follow PEP 8 and use type hints
 - Keep changes minimal and focused
-- Never modify files outside your task scope
-"""
-
-def run(task: str, state: dict) -> str:
-    """Execute a coding task within a scoped sandbox."""
-    # Capability scoping: coder gets file + code tools, NOT deploy tools
-    tools = get_tools_for_worker("coder")  # [file_read, file_write, code_exec]
-
-    response = litellm.completion(
-        model="claude-sonnet-4-20250514",
-        messages=[
-            {"role": "system", "content": CODER_INSTRUCTIONS},
-            {"role": "user", "content": f"Task: {task}\n\n"
-             f"Context: {json.dumps(state.get('intent', {}))}"},
-        ],
-        tools=tools,
-        max_tokens=4000,  # Resource envelope
+- Never modify files outside your task scope""",
+        plugins=[FilesystemPlugin(), CodeExecPlugin()],
     )
-    # Tool call loop with governance middleware
-    return execute_tool_calls(response, tools, state)
 ```
 
-### MCP Server: Filesystem
-
-Tools are exposed as MCP servers — each running as an independent process with scoped permissions:
-
 ```python
-# mcp_servers/filesystem/server.py
-from mcp.server import Server
-from mcp.types import Tool, TextContent
-import os
+# agents/tester.py
+from semantic_kernel.agents import ChatCompletionAgent
 
-server = Server("filesystem")
+def create_tester_agent(service) -> ChatCompletionAgent:
+    """Create a tester agent — can read files and run tests, not write prod code."""
+    from plugins.filesystem import FilesystemPlugin
+    from plugins.code_exec import CodeExecPlugin
 
-# Governance: restrict to project directory
-ALLOWED_ROOT = os.environ.get("PROJECT_ROOT", "/workspace")
-
-@server.tool()
-async def file_read(path: str) -> str:
-    """Read a file from the project directory."""
-    full_path = os.path.join(ALLOWED_ROOT, path)
-    # Security: prevent path traversal
-    if not os.path.realpath(full_path).startswith(os.path.realpath(ALLOWED_ROOT)):
-        raise PermissionError(f"Access denied: {path} is outside project scope")
-    with open(full_path, "r") as f:
-        return f.read()
-
-@server.tool()
-async def file_write(path: str, content: str) -> str:
-    """Write content to a file in the project directory."""
-    full_path = os.path.join(ALLOWED_ROOT, path)
-    if not os.path.realpath(full_path).startswith(os.path.realpath(ALLOWED_ROOT)):
-        raise PermissionError(f"Access denied: {path} is outside project scope")
-    os.makedirs(os.path.dirname(full_path), exist_ok=True)
-    with open(full_path, "w") as f:
-        f.write(content)
-    return f"Written {len(content)} bytes to {path}"
-
-@server.tool()
-async def file_search(pattern: str, directory: str = ".") -> list[str]:
-    """Search for files matching a glob pattern."""
-    import glob
-    full_dir = os.path.join(ALLOWED_ROOT, directory)
-    if not os.path.realpath(full_dir).startswith(os.path.realpath(ALLOWED_ROOT)):
-        raise PermissionError("Access denied")
-    matches = glob.glob(os.path.join(full_dir, pattern), recursive=True)
-    return [os.path.relpath(m, ALLOWED_ROOT) for m in matches[:50]]
-
-if __name__ == "__main__":
-    server.run()
-```
-
-### MCP Server: Git Operations
-
-```python
-# mcp_servers/git/server.py
-from mcp.server import Server
-import subprocess
-
-server = Server("git")
-
-@server.tool()
-async def git_diff(ref: str = "HEAD") -> str:
-    """Get the diff of current changes against a reference."""
-    result = subprocess.run(
-        ["git", "diff", ref], capture_output=True, text=True, timeout=30
+    return ChatCompletionAgent(
+        service=service,
+        name="Tester",
+        instructions="""You are a test specialist. You write and run tests.
+Write tests using pytest. Cover happy path, edge cases, and error cases.
+Never modify production code — only test files.""",
+        # Capability scoping: tester gets file read + code exec, scoped to tests
+        plugins=[FilesystemPlugin(), CodeExecPlugin()],
     )
-    return result.stdout[:10000]  # Truncate to avoid context overflow
+```
 
-@server.tool()
-async def git_log(count: int = 10) -> str:
-    """Get recent commit history."""
-    result = subprocess.run(
-        ["git", "log", f"-{count}", "--oneline"], capture_output=True, text=True
+```python
+# agents/reviewer.py
+from semantic_kernel.agents import ChatCompletionAgent
+
+def create_reviewer_agent(service) -> ChatCompletionAgent:
+    """Create a reviewer agent — read-only access, no file writes."""
+    from plugins.filesystem import FilesystemPlugin
+    from plugins.git_plugin import GitPlugin
+
+    return ChatCompletionAgent(
+        service=service,
+        name="Reviewer",
+        instructions="""You are a code review specialist.
+Review code for quality, security, correctness, and style.
+Identify issues by severity: critical, major, minor.
+Never modify code — only review and report findings.""",
+        # Capability scoping: reviewer gets read-only tools
+        plugins=[FilesystemPlugin(), GitPlugin()],
     )
-    return result.stdout
-
-@server.tool()
-async def git_create_branch(name: str) -> str:
-    """Create and checkout a new branch."""
-    subprocess.run(["git", "checkout", "-b", name], check=True)
-    return f"Created and checked out branch: {name}"
-
-if __name__ == "__main__":
-    server.run()
 ```
 
-### Tool Registry with Capability Scoping
+### Cognitive Kernel: Sequential Orchestration
+
+The kernel coordinates agents using Semantic Kernel's orchestration patterns. For a feature workflow (code → test → review), a `SequentialOrchestration` maps directly to the Planner-Executor pattern:
 
 ```python
-# tools/registry.py
-"""
-Maps the Operator Fabric's tool registry pattern:
-each worker type gets only the tools it needs.
-"""
+# agents/kernel.py
+import asyncio
+from semantic_kernel.agents import ChatCompletionAgent, SequentialOrchestration
+from semantic_kernel.agents.runtime import InProcessRuntime
+from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
 
-WORKER_CAPABILITIES = {
-    "coder": ["file_read", "file_write", "file_search", "code_exec",
-              "git_diff", "git_create_branch"],
-    "tester": ["file_read", "file_write", "code_exec", "test_run"],
-    "reviewer": ["file_read", "git_diff", "git_log"],  # read-only
-    "documenter": ["file_read", "file_write", "file_search"],
-}
+from agents.coder import create_coder_agent
+from agents.tester import create_tester_agent
+from agents.reviewer import create_reviewer_agent
 
-def get_tools_for_worker(worker_type: str) -> list[dict]:
-    """Return tool schemas scoped to a worker's capabilities."""
-    allowed = WORKER_CAPABILITIES.get(worker_type, [])
-    return [tool for tool in ALL_TOOLS if tool["name"] in allowed]
+async def run_feature_workflow(request: str) -> str:
+    """
+    Cognitive kernel: orchestrate coder → tester → reviewer
+    using Semantic Kernel's SequentialOrchestration.
+    """
+    # Model provider layer
+    service = AzureChatCompletion(
+        deployment_name="gpt-4.1",
+        endpoint="https://your-endpoint.openai.azure.com/",
+    )
+
+    # Create specialized agents (subagents with scoped capabilities)
+    coder = create_coder_agent(service)
+    tester = create_tester_agent(service)
+    reviewer = create_reviewer_agent(service)
+
+    # Sequential orchestration: Coder → Tester → Reviewer
+    # Maps to the Pipeline coordination pattern (Ch. 23)
+    orchestration = SequentialOrchestration(
+        members=[coder, tester, reviewer],
+    )
+
+    # Start the in-process runtime
+    runtime = InProcessRuntime()
+    await runtime.start()
+
+    # Invoke the orchestration with the user's request
+    result = await orchestration.invoke(
+        task=request,
+        runtime=runtime,
+    )
+    output = await result.get()
+
+    await runtime.stop_when_idle()
+    return output
+
+
+# For more complex tasks, use GroupChatOrchestration for adversarial patterns
+async def run_review_cycle(request: str) -> str:
+    """
+    Adversarial pattern: Coder and Reviewer iterate until quality is met.
+    Maps to GroupChatOrchestration (Ch. 23 Adversarial topology).
+    """
+    from semantic_kernel.agents import GroupChatOrchestration
+    from semantic_kernel.agents.strategies import (
+        KernelFunctionSelectionStrategy,
+        KernelFunctionTerminationStrategy,
+    )
+    from semantic_kernel import Kernel
+
+    service = AzureChatCompletion(
+        deployment_name="gpt-4.1",
+        endpoint="https://your-endpoint.openai.azure.com/",
+    )
+    coder = create_coder_agent(service)
+    reviewer = create_reviewer_agent(service)
+
+    # The manager kernel decides turn-taking and termination
+    manager_kernel = Kernel()
+    manager_kernel.add_service(service)
+
+    orchestration = GroupChatOrchestration(
+        members=[coder, reviewer],
+        manager=manager_kernel,
+        # Terminate when reviewer approves
+        max_rounds=6,
+    )
+
+    runtime = InProcessRuntime()
+    await runtime.start()
+    result = await orchestration.invoke(task=request, runtime=runtime)
+    output = await result.get()
+    await runtime.stop_when_idle()
+    return output
 ```
 
-### Skill Definition: Python Backend
+### Governance: SK Function Filters
 
-Skills package domain knowledge — instructions, tool selections, and strategies:
-
-```python
-# skills/python_backend.py
-SKILL = {
-    "name": "python-backend",
-    "description": "Develop Python backend services",
-    "domains": ["code", "python", "backend"],
-    "instructions": """
-        Follow PEP 8. Use type hints on all public functions.
-        Write tests for all public functions using pytest.
-        Prefer composition over inheritance.
-        Handle errors explicitly — no bare except clauses.
-        Use Pydantic for data validation at API boundaries.
-        Log at INFO level for business events, DEBUG for internals.
-    """,
-    "tools": ["file_read", "file_write", "code_exec", "test_run"],
-    "strategies": {
-        "new_endpoint": {
-            "steps": [
-                "Read existing router to understand patterns",
-                "Define Pydantic request/response models",
-                "Implement the route handler",
-                "Add input validation",
-                "Write unit tests",
-                "Update API documentation",
-            ]
-        },
-        "fix_bug": {
-            "steps": [
-                "Read the bug report and identify the relevant code",
-                "Write a failing test that reproduces the bug",
-                "Fix the code to make the test pass",
-                "Run the full test suite to check for regressions",
-                "Document the root cause in the commit message",
-            ]
-        },
-    },
-    "validators": {
-        "code": ["python -m py_compile {file}", "ruff check {file}"],
-        "tests": ["pytest {test_file} -v"],
-    },
-}
-```
-
-### Governance Middleware
+Semantic Kernel provides **filters** — interceptors that wrap function calls. This is the natural implementation of the Governance Plane's middleware pattern:
 
 ```python
-# governance/middleware.py
+# governance/filters.py
 import time
 import logging
-from dataclasses import dataclass, field
+from semantic_kernel.filters import FunctionInvocationContext
+from semantic_kernel import Kernel
 
 logger = logging.getLogger("governance")
 
-@dataclass
-class AuditEntry:
-    timestamp: float
-    worker: str
-    action: str
-    tool: str
-    args: dict
-    result: str
-    budget_consumed: int
+# Capability scoping per agent
+AGENT_CAPABILITIES = {
+    "Coder": {"file_read", "file_write", "file_search", "code_exec",
+              "git_diff", "git_create_branch"},
+    "Tester": {"file_read", "file_search", "code_exec"},
+    "Reviewer": {"file_read", "file_search", "git_diff", "git_log"},
+}
 
-@dataclass
-class GovernanceContext:
-    worker_type: str
-    allowed_tools: list[str]
-    autonomy_level: int = 0
-    budget_remaining: int = 50000  # tokens
-    audit_log: list[AuditEntry] = field(default_factory=list)
+class GovernanceFilter:
+    """
+    SK Function Filter that enforces governance policies.
+    Maps to the Permission Gate and Auditable Action patterns.
+    """
 
-    def before_tool_call(self, tool_name: str, args: dict) -> bool:
-        """Pre-action policy enforcement."""
-        # Capability check
-        if tool_name not in self.allowed_tools:
-            logger.warning(f"DENIED: {self.worker_type} cannot use {tool_name}")
-            return False
+    def __init__(self):
+        self.audit_log = []
+        self.budget_remaining = 50000  # tokens
 
-        # Risk-tiered check: file_write on non-test files needs Level 1+
-        if tool_name == "file_write" and not args.get("path", "").startswith("test"):
-            if self.autonomy_level < 1:
-                logger.info(f"APPROVAL REQUIRED: {tool_name} on {args.get('path')}")
-                return False  # Would trigger human-in-the-loop in production
+    async def on_function_invocation(
+        self, context: FunctionInvocationContext, next
+    ):
+        function_name = context.function.name
+        agent_name = context.arguments.get("agent_name", "unknown")
 
-        # Budget check
+        # Pre-action: Capability check
+        allowed = AGENT_CAPABILITIES.get(agent_name, set())
+        if function_name not in allowed and allowed:
+            logger.warning(f"DENIED: {agent_name} cannot use {function_name}")
+            context.result = "Permission denied: insufficient capabilities"
+            return
+
+        # Pre-action: Budget check
         if self.budget_remaining <= 0:
             logger.warning("DENIED: Budget exhausted")
-            return False
+            context.result = "Budget exhausted"
+            return
 
-        return True
+        # Execute the function
+        start = time.time()
+        await next(context)
+        elapsed = time.time() - start
 
-    def after_tool_call(self, tool_name: str, args: dict, result: str, tokens: int):
-        """Post-action audit and budget tracking."""
-        self.budget_remaining -= tokens
-        entry = AuditEntry(
-            timestamp=time.time(),
-            worker=self.worker_type,
-            action="tool_call",
-            tool=tool_name,
-            args=args,
-            result=result[:200],  # truncate for audit
-            budget_consumed=tokens,
-        )
-        self.audit_log.append(entry)
-        logger.info(f"AUDIT: {self.worker_type} → {tool_name} ({tokens} tokens)")
+        # Post-action: Audit logging
+        self.audit_log.append({
+            "timestamp": time.time(),
+            "agent": agent_name,
+            "function": function_name,
+            "elapsed_ms": int(elapsed * 1000),
+        })
+        logger.info(f"AUDIT: {agent_name} → {function_name} ({elapsed:.2f}s)")
+
+
+def apply_governance(kernel: Kernel):
+    """Register governance filters on a kernel instance."""
+    gov = GovernanceFilter()
+    kernel.add_filter("function_invocation", gov.on_function_invocation)
+    return gov
+```
+
+### Skill Definition
+
+Skills package domain knowledge as reusable configurations:
+
+```python
+# skills/python_backend.py
+"""
+A Skill in the Agentic OS is a bundle of instructions, plugin selections,
+and strategies. In Semantic Kernel, this maps to a combination of:
+- Agent instructions (system prompt)
+- Plugin selection (which kernel_functions are available)
+- Prompt templates (reusable patterns)
+"""
+
+PYTHON_BACKEND_SKILL = {
+    "name": "python-backend",
+    "description": "Develop Python backend services",
+    "agent_instructions": """
+Follow PEP 8. Use type hints on all public functions.
+Write tests for all public functions using pytest.
+Prefer composition over inheritance.
+Handle errors explicitly — no bare except clauses.
+Use Pydantic for data validation at API boundaries.
+    """,
+    "plugins": ["FilesystemPlugin", "CodeExecPlugin", "GitPlugin"],
+    "strategies": {
+        "new_endpoint": [
+            "Read existing router to understand patterns",
+            "Define Pydantic request/response models",
+            "Implement the route handler",
+            "Add input validation",
+            "Write unit tests",
+            "Update API documentation",
+        ],
+        "fix_bug": [
+            "Read the bug report and identify the relevant code",
+            "Write a failing test that reproduces the bug",
+            "Fix the code to make the test pass",
+            "Run the full test suite to check for regressions",
+        ],
+    },
+}
 ```
 
 ### Running It
 
 ```python
 # main.py
-from agents.kernel import coding_os
+import asyncio
+from agents.kernel import run_feature_workflow
 
-result = coding_os.invoke({
-    "request": "Add pagination to the user list API endpoint",
-    "autonomy_level": 1,
-    "budget_remaining": 50000,
-    "approval_pending": False,
-    "files_modified": [],
-    "test_results": {},
-    "review_findings": [],
-    "messages": [],
-})
+async def main():
+    result = await run_feature_workflow(
+        "Add pagination to the user list API endpoint"
+    )
+    print(result)
 
-print(result["status"])  # "complete"
-print(result["result"])  # consolidated output from all workers
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
-### MCP Client Configuration
+### MCP Integration
 
-Connect the Coding OS to its MCP servers via a standard configuration:
+MCP servers provide tool isolation. Connect agents to MCP tools via Semantic Kernel's MCP integration:
 
 ```json
 {
@@ -678,4 +633,4 @@ Connect the Coding OS to its MCP servers via a standard configuration:
 }
 ```
 
-This implementation demonstrates the core patterns: the **kernel** (LangGraph graph with routing, planning, delegation), **workers** (scoped subagents with capability-limited tool access), **MCP servers** (isolated tool processes with security boundaries), **skills** (packaged domain knowledge), and **governance** (middleware with capability checks, budget enforcement, and audit logging).
+This implementation demonstrates the core patterns: the **kernel** (SK orchestration with Sequential and GroupChat patterns), **workers** (`ChatCompletionAgent` subagents with scoped plugins), **plugins** (`@kernel_function` decorated methods as operators), **skills** (packaged instructions and strategies), and **governance** (SK function filters for capability checks, budget enforcement, and audit logging).

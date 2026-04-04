@@ -1,4 +1,4 @@
-﻿# Research OS
+# Research OS
 
 Software development has compilers to verify output. Research has no compiler. The artifacts are documents, analyses, and recommendations — things that require judgment to evaluate. This makes a Research OS fundamentally different from a Coding OS, and the differences reveal important truths about the Agentic OS model.
 
@@ -175,257 +175,161 @@ The OS abstraction matters because research is a process, not a query. It has ph
 
 ## Reference Implementation
 
-The Research OS uses the same infrastructure as the Coding OS — LangGraph for orchestration, MCP for tools — but with research-specific workers, memory, and governance.
+The Research OS uses the Microsoft Agent Framework (Semantic Kernel) with specialized agents for each research phase and MCP servers for web access.
 
-### State Definition
-
-```python
-from typing import TypedDict, Literal, Annotated
-from langgraph.graph import add_messages
-
-class Source(TypedDict):
-    url: str
-    title: str
-    author: str
-    date: str
-    credibility: Literal["high", "medium", "low", "unverified"]
-    claims: list[str]
-
-class ResearchState(TypedDict):
-    query: str
-    intent: dict
-    research_type: Literal["survey", "analysis", "investigation"]
-
-    # Memory: Source Registry
-    sources: list[Source]
-    # Memory: Claim Graph
-    claims: dict[str, dict]  # claim_id → {text, supporting_sources, confidence}
-
-    # Plan
-    plan: list[dict]
-    current_step: int
-
-    # Workers
-    messages: Annotated[list, add_messages]
-    scout_results: list[dict]
-    analyst_outputs: list[dict]
-    synthesis: str
-    critique: str
-
-    # Governance
-    budget_remaining: int
-    status: str
-```
-
-### Kernel: Research Orchestration Graph
+### Plugins: Web Research
 
 ```python
-from langgraph.graph import StateGraph, START, END
-
-def classify_research(state: ResearchState) -> dict:
-    """Classify the research request and plan the investigation."""
-    response = litellm.completion(
-        model="claude-sonnet-4-20250514",
-        messages=[{
-            "role": "system",
-            "content": "You are a research planner. Classify the query and "
-                       "produce a research plan with scout, analysis, and "
-                       "synthesis phases. Output JSON."
-        }, {
-            "role": "user",
-            "content": state["query"]
-        }],
-        response_format={"type": "json_object"},
-    )
-    parsed = json.loads(response.choices[0].message.content)
-    return {
-        "intent": parsed["intent"],
-        "research_type": parsed["type"],
-        "plan": parsed["plan"],
-        "current_step": 0,
-        "status": "scouting",
-    }
-
-def scout(state: ResearchState) -> dict:
-    """Scout worker: cast a wide net across sources."""
-    tools = get_tools_for_worker("scout")  # [web_search, fetch_page]
-    response = litellm.completion(
-        model="gpt-4.1",  # Fast model for breadth
-        messages=[{
-            "role": "system",
-            "content": "You are a research scout. Search broadly for relevant "
-                       "sources. Return structured results with URL, title, "
-                       "relevance assessment. Do NOT evaluate — just collect."
-        }, {
-            "role": "user",
-            "content": f"Research query: {state['query']}\n"
-                       f"Focus areas: {json.dumps(state['intent'])}"
-        }],
-        tools=tools,
-        max_tokens=3000,
-    )
-    return {"scout_results": parse_scout_results(response), "status": "analyzing"}
-
-def analyze_source(state: ResearchState) -> dict:
-    """Analyst worker: deep-read sources and extract structured claims."""
-    # Fan-out: one analyst per source (in practice, batched)
-    analyses = []
-    for source in state["scout_results"][:10]:  # Budget: top 10 sources
-        response = litellm.completion(
-            model="claude-sonnet-4-20250514",  # Strong reasoning for analysis
-            messages=[{
-                "role": "system",
-                "content": "You are a research analyst. Read this source and "
-                           "extract: key claims, evidence quality, methodology "
-                           "used, limitations. Be precise. Cite specific passages."
-            }, {
-                "role": "user",
-                "content": f"Source: {source['title']}\nURL: {source['url']}\n"
-                           f"Content: {source['content'][:8000]}"
-            }],
-            max_tokens=2000,
-        )
-        analyses.append({
-            "source": source,
-            "analysis": response.choices[0].message.content,
-        })
-    return {"analyst_outputs": analyses, "status": "synthesizing"}
-
-def synthesize(state: ResearchState) -> dict:
-    """Synthesizer worker: combine findings into structured knowledge."""
-    response = litellm.completion(
-        model="claude-sonnet-4-20250514",
-        messages=[{
-            "role": "system",
-            "content": "You are a research synthesizer. Combine analyst findings "
-                       "into a coherent synthesis. Identify patterns, contradictions, "
-                       "and gaps. Every claim must cite its source. Mark confidence "
-                       "levels: strong (3+ corroborating sources), moderate (1-2), "
-                       "or weak (single unverified source)."
-        }, {
-            "role": "user",
-            "content": f"Query: {state['query']}\n\n"
-                       f"Analyst outputs:\n{json.dumps(state['analyst_outputs'], indent=2)}"
-        }],
-        max_tokens=4000,
-    )
-    return {"synthesis": response.choices[0].message.content, "status": "critiquing"}
-
-def critique(state: ResearchState) -> dict:
-    """Critic worker: check for bias, gaps, and weak evidence."""
-    response = litellm.completion(
-        model="claude-sonnet-4-20250514",
-        messages=[{
-            "role": "system",
-            "content": "You are a research critic. Review this synthesis for:\n"
-                       "1. Claims based on weak or single sources\n"
-                       "2. Perspectives that are underrepresented\n"
-                       "3. Logical gaps or unsupported inferences\n"
-                       "4. Potential biases in source selection\n"
-                       "Be specific. Flag each issue with severity."
-        }, {
-            "role": "user",
-            "content": state["synthesis"]
-        }],
-        max_tokens=2000,
-    )
-    return {"critique": response.choices[0].message.content, "status": "complete"}
-
-# Build the graph
-graph = StateGraph(ResearchState)
-graph.add_node("classify", classify_research)
-graph.add_node("scout", scout)
-graph.add_node("analyze", analyze_source)
-graph.add_node("synthesize", synthesize)
-graph.add_node("critique", critique)
-
-graph.add_edge(START, "classify")
-graph.add_edge("classify", "scout")
-graph.add_edge("scout", "analyze")
-graph.add_edge("analyze", "synthesize")
-graph.add_edge("synthesize", "critique")
-graph.add_edge("critique", END)
-
-research_os = graph.compile()
-```
-
-### MCP Server: Web Research
-
-```python
-# mcp_servers/web_research/server.py
-from mcp.server import Server
+# plugins/web_research.py
+from typing import Annotated
+from semantic_kernel.functions import kernel_function
 import httpx
-from readability import Document  # newspaper3k or readability-lxml
 
-server = Server("web-research")
+class WebResearchPlugin:
+    """Web search and content extraction for research agents."""
 
-@server.tool()
-async def web_search(query: str, max_results: int = 10) -> list[dict]:
-    """Search the web and return structured results."""
-    # Uses a search API (SerpAPI, Brave Search, Tavily, etc.)
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            "https://api.tavily.com/search",
-            params={"query": query, "max_results": max_results},
-            headers={"Authorization": f"Bearer {TAVILY_API_KEY}"},
-        )
-        results = response.json()["results"]
-        return [{"url": r["url"], "title": r["title"],
-                 "snippet": r["content"]} for r in results]
+    @kernel_function(description="Search the web for a query.")
+    async def web_search(
+        self,
+        query: Annotated[str, "Search query"],
+        max_results: Annotated[int, "Max results to return"] = 10,
+    ) -> Annotated[str, "Search results as JSON"]:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://api.tavily.com/search",
+                params={"query": query, "max_results": max_results},
+                headers={"Authorization": f"Bearer {TAVILY_API_KEY}"},
+            )
+            results = response.json()["results"]
+            return json.dumps([
+                {"url": r["url"], "title": r["title"], "snippet": r["content"]}
+                for r in results
+            ])
 
-@server.tool()
-async def fetch_page(url: str) -> dict:
-    """Fetch and extract the main content from a web page."""
-    async with httpx.AsyncClient(follow_redirects=True, timeout=15) as client:
-        response = await client.get(url)
-        doc = Document(response.text)
-        return {
-            "url": url,
-            "title": doc.title(),
-            "content": doc.summary()[:10000],  # Truncate for context budget
-        }
-
-if __name__ == "__main__":
-    server.run()
+    @kernel_function(description="Fetch and extract content from a web page.")
+    async def fetch_page(
+        self, url: Annotated[str, "URL to fetch"]
+    ) -> Annotated[str, "Extracted page content"]:
+        from readability import Document
+        async with httpx.AsyncClient(follow_redirects=True, timeout=15) as client:
+            response = await client.get(url)
+            doc = Document(response.text)
+            return json.dumps({
+                "url": url, "title": doc.title(),
+                "content": doc.summary()[:10000],
+            })
 ```
 
-### Governance: Hallucination Guard
+### Agents: Research Specialists
 
-Research-specific governance adds citation verification and confidence scoring:
+```python
+# agents/research_agents.py
+from semantic_kernel.agents import ChatCompletionAgent
+from plugins.web_research import WebResearchPlugin
+
+def create_scout_agent(service) -> ChatCompletionAgent:
+    return ChatCompletionAgent(
+        service=service,
+        name="Scout",
+        instructions="""You are a research scout. Search broadly for sources.
+Return structured results. Do NOT evaluate or analyze — just collect.
+Cover multiple source types: academic, industry, news, official.""",
+        plugins=[WebResearchPlugin()],
+    )
+
+def create_analyst_agent(service) -> ChatCompletionAgent:
+    return ChatCompletionAgent(
+        service=service,
+        name="Analyst",
+        instructions="""You are a research analyst. For each source provided:
+1. Extract key claims with exact quotes
+2. Assess evidence quality (methodology, data, credibility)
+3. Note limitations and potential biases
+4. Rate confidence: high, medium, low
+Be precise. Cite specific passages.""",
+    )
+
+def create_synthesizer_agent(service) -> ChatCompletionAgent:
+    return ChatCompletionAgent(
+        service=service,
+        name="Synthesizer",
+        instructions="""You are a research synthesizer. Combine analyst findings:
+1. Identify patterns across sources
+2. Flag contradictions with evidence from both sides
+3. Note gaps where evidence is missing
+4. Score confidence: strong (3+ sources), moderate (1-2), weak (single)
+Every claim must cite its source.""",
+    )
+
+def create_critic_agent(service) -> ChatCompletionAgent:
+    return ChatCompletionAgent(
+        service=service,
+        name="Critic",
+        instructions="""You are a research critic. Review the synthesis for:
+1. Claims based on weak or single sources
+2. Underrepresented perspectives
+3. Logical gaps or unsupported inferences
+4. Source selection bias
+Flag each issue with severity (critical, major, minor).""",
+    )
+```
+
+### Kernel: Sequential Research Pipeline
+
+```python
+# agents/kernel.py
+import asyncio
+from semantic_kernel.agents import SequentialOrchestration
+from semantic_kernel.agents.runtime import InProcessRuntime
+from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion
+
+async def run_research(query: str) -> str:
+    """Scout → Analyst → Synthesizer → Critic pipeline."""
+    service = AzureChatCompletion(
+        deployment_name="gpt-4.1",
+        endpoint="https://your-endpoint.openai.azure.com/",
+    )
+
+    scout = create_scout_agent(service)
+    analyst = create_analyst_agent(service)
+    synthesizer = create_synthesizer_agent(service)
+    critic = create_critic_agent(service)
+
+    orchestration = SequentialOrchestration(
+        members=[scout, analyst, synthesizer, critic],
+    )
+
+    runtime = InProcessRuntime()
+    await runtime.start()
+
+    result = await orchestration.invoke(task=query, runtime=runtime)
+    output = await result.get()
+
+    await runtime.stop_when_idle()
+    return output
+```
+
+### Governance: Citation Verification
 
 ```python
 # governance/research_policies.py
+from semantic_kernel.filters import FunctionInvocationContext
 
-def verify_citations(synthesis: str, sources: list[dict]) -> list[str]:
-    """Post-action validation: check that all claims cite real sources."""
-    known_urls = {s["url"] for s in sources}
-    issues = []
+async def citation_filter(context: FunctionInvocationContext, next):
+    """Post-action filter: verify citations in synthesizer output."""
+    await next(context)
 
-    # Extract citations from synthesis (simplified — use regex or LLM in practice)
-    cited_urls = extract_urls(synthesis)
-    for url in cited_urls:
-        if url not in known_urls:
-            issues.append(f"Citation not in source registry: {url}")
-
-    # Check for unsourced claims (claims without any citation nearby)
-    unsourced = find_unsourced_claims(synthesis)
-    for claim in unsourced:
-        issues.append(f"Unsourced claim: '{claim[:80]}...' — mark as inference")
-
-    return issues
-
-def check_source_bias(sources: list[dict]) -> list[str]:
-    """During-action monitoring: flag source imbalance."""
-    issues = []
-    domains = [urlparse(s["url"]).netloc for s in sources]
-    domain_counts = Counter(domains)
-
-    for domain, count in domain_counts.items():
-        if count > len(sources) * 0.4:
-            issues.append(
-                f"Source bias: {count}/{len(sources)} sources from {domain}"
+    # Only check synthesizer and critic outputs
+    agent_name = context.arguments.get("agent_name", "")
+    if agent_name in ("Synthesizer", "Critic"):
+        result = str(context.result)
+        unsourced = find_unsourced_claims(result)
+        if unsourced:
+            context.result = (
+                result + "\n\n⚠️ GOVERNANCE WARNING: "
+                + f"{len(unsourced)} claims lack source citations."
             )
-    return issues
 ```
 
-This implementation shows the research-specific patterns: **scout-analyze-synthesize-critique pipeline**, **source registry as episodic memory**, **citation governance**, and **model selection** (fast model for scouting, strong model for analysis and synthesis).
+This implementation shows the research-specific patterns: **sequential orchestration** (scout → analyst → synthesizer → critic), **web research plugin** (search + page extraction as `@kernel_function`), **citation governance** (SK filter that checks outputs), and **role separation** (scout collects, analyst evaluates, synthesizer connects, critic challenges).
+
