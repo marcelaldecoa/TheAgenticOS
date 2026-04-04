@@ -64,6 +64,17 @@ Support-specific policies:
 
 ## Workflow: Technical Support Case
 
+```mermaid
+flowchart TD
+  I[1. Intake\nCustomer submits issue] --> T[2. Triage\nClassify, check context,\nknown issues, system state]
+  T -->|match found| R[3. Resolution Attempt\nApply known fix]
+  T -->|no match| INV[Investigate\nUnknown issue workflow]
+  R --> V[4. Verification\nConfirm fix worked]
+  V -->|success| C[5. Communication\nCraft customer response]
+  V -->|failed| INV
+  C --> L[6. Learning\nUpdate memory & patterns]
+```
+
 ### 1. Intake
 
 A customer submits: "My dashboard has been showing 'loading' for the past hour. I've tried refreshing and clearing cache."

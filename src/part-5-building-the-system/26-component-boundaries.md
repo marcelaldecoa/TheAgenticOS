@@ -51,8 +51,15 @@ Workers should communicate through the kernel, not directly with each other. Dir
 
 When worker A needs information from worker B, the flow is:
 
-```text
-Worker A → reports need to kernel → kernel retrieves from B's output → delivers to A
+```mermaid
+sequenceDiagram
+  participant A as Worker A
+  participant K as Kernel
+  participant B as Worker B
+  A->>K: Reports need
+  K->>B: Retrieves output
+  B-->>K: Returns result
+  K-->>A: Delivers data
 ```
 
 This is slightly less efficient than direct communication but dramatically more observable and controllable. The kernel can log the exchange, apply policies, and maintain a complete picture of information flow.
@@ -102,9 +109,16 @@ The governance plane has hooks at every boundary crossing:
 
 Governance is best implemented as middleware that wraps every boundary crossing, not as a monolithic checkpoint at the entrance. Monolithic governance catches policy violations at the front door but misses them inside the house. Middleware governance catches them everywhere.
 
-```text
-Without middleware:  Request → [Policy Check] → Kernel → Workers → Tools → Done
-With middleware:     Request → [Policy] → Kernel → [Policy] → Worker → [Policy] → Tool → Done
+```mermaid
+flowchart LR
+  subgraph without["Without Middleware"]
+    direction LR
+    R1[Request] --> PC1[Policy Check] --> K1[Kernel] --> W1[Workers] --> T1[Tools] --> D1[Done]
+  end
+  subgraph with["With Middleware"]
+    direction LR
+    R2[Request] --> PC2[Policy] --> K2[Kernel] --> PC3[Policy] --> W2[Worker] --> PC4[Policy] --> T2[Tool] --> D2[Done]
+  end
 ```
 
 ## The Tool Boundary

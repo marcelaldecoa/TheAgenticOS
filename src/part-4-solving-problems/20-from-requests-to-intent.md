@@ -29,6 +29,16 @@ A capable system does not just parse the surface. It reconstructs as many layers
 
 The cognitive kernel processes incoming requests through an interpretation pipeline:
 
+```mermaid
+flowchart TD
+  R[Incoming Request] --> P[1. Parse the Request\nExtract literal content]
+  P --> LC[2. Load Context\nCodebase, history, conventions]
+  LC --> CC[3. Classify Complexity\nSimple → direct execution\nComplex → full planning]
+  CC --> IC[4. Infer Implicit Constraints\nUnstated rules and expectations]
+  IC --> RA[5. Resolve Ambiguity\nGuess if low-risk, ask if high-risk]
+  RA --> SI[6. Produce Structured Intent\nGoal + constraints + success criteria]
+```
+
 ### 1. Parse the Request
 
 Extract the literal content: what action is requested, what artifacts are mentioned, what constraints are stated. This is the easy part.

@@ -78,17 +78,33 @@ The kernel interprets:
 
 The kernel produces a task graph:
 
-```text
-1. Analyze existing endpoint          (Coder)
-2. Check pagination patterns in project (Coder)
-3. Design pagination approach          (Coder)
-4. Implement query changes             (Coder)    → depends on 1, 2, 3
-5. Implement response formatting       (Coder)    → depends on 3
-6. Update API documentation            (Documenter) → depends on 3
-7. Write unit tests                    (Tester)   → depends on 4, 5
-8. Write integration tests             (Tester)   → depends on 4, 5
-9. Run full test suite                 (Tester)   → depends on 7, 8
-10. Code review                        (Reviewer) → depends on 4, 5, 6
+```mermaid
+flowchart TD
+  T1["1. Analyze existing endpoint\n(Coder)"]
+  T2["2. Check pagination patterns\n(Coder)"]
+  T3["3. Design pagination approach\n(Coder)"]
+  T4["4. Implement query changes\n(Coder)"]
+  T5["5. Implement response formatting\n(Coder)"]
+  T6["6. Update API documentation\n(Documenter)"]
+  T7["7. Write unit tests\n(Tester)"]
+  T8["8. Write integration tests\n(Tester)"]
+  T9["9. Run full test suite\n(Tester)"]
+  T10["10. Code review\n(Reviewer)"]
+
+  T1 --> T4
+  T2 --> T4
+  T3 --> T4
+  T3 --> T5
+  T3 --> T6
+  T4 --> T7
+  T5 --> T7
+  T4 --> T8
+  T5 --> T8
+  T7 --> T9
+  T8 --> T9
+  T4 --> T10
+  T5 --> T10
+  T6 --> T10
 ```
 
 Steps 1, 2 run in parallel. Steps 4, 5, 6 run in parallel after 3 completes. Steps 7, 8 run in parallel.

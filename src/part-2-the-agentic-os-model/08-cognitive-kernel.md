@@ -46,8 +46,10 @@ Before every significant action, the kernel consults the governance plane: Is th
 
 The cognitive kernel operates in a continuous loop:
 
-```text
-Perceive → Interpret → Plan → Delegate → Monitor → Consolidate → Adapt
+```mermaid
+flowchart LR
+  P[Perceive] --> I[Interpret] --> Pl[Plan] --> D[Delegate] --> M[Monitor] --> C[Consolidate] --> A[Adapt]
+  A -.->|cycle| P
 ```
 
 Each cycle may trigger new cycles as the plan evolves, workers report back, or conditions change. The kernel is the system's executive function — it does not do the work itself, but it decides what work gets done, by whom, with what resources, and under what rules.

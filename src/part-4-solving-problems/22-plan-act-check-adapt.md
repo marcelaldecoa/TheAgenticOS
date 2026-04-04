@@ -6,8 +6,10 @@ This chapter describes the execution loop at the heart of the Agentic OS: the cy
 
 ## The Execution Loop
 
-```text
-Plan → Act → Check → Adapt → (repeat)
+```mermaid
+flowchart LR
+  Plan --> Act --> Check --> Adapt
+  Adapt -.->|repeat| Plan
 ```
 
 This is not a waterfall. It is a tight loop that runs at every level of the system: at the macro level (the overall task), at the subtask level (each decomposed unit), and at the micro level (each individual action within a worker).
@@ -54,6 +56,27 @@ Adaptation ranges from minor to radical:
 ## Depth of the Loop
 
 The loop runs at multiple depths simultaneously:
+
+```mermaid
+flowchart TD
+  subgraph Macro["Macro Loop — Overall Task (minutes–hours)"]
+    direction LR
+    MP[Plan task] --> MA[Execute steps] --> MC[Assess whole result] --> MAd[Re-decompose if needed]
+    MAd -.-> MP
+  end
+  subgraph Meso["Meso Loop — Across Steps (seconds–minutes)"]
+    direction LR
+    MeP[Check plan validity] --> MeA[Run next step] --> MeC[Verify step output] --> MeAd[Revise plan]
+    MeAd -.-> MeP
+  end
+  subgraph Micro["Micro Loop — Within a Worker (seconds)"]
+    direction LR
+    MiP[Generate] --> MiA[Check] --> MiC[Fix] --> MiAd[Retry]
+    MiAd -.-> MiP
+  end
+
+  Macro --- Meso --- Micro
+```
 
 ### Micro Loop: Within a Worker
 

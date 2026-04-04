@@ -176,3 +176,25 @@ Sustainable execution. Cost control. Graceful behavior under resource pressure.
 
 ### Related Patterns
 Resource Envelope, Context Budget Enforcement
+
+---
+
+## Applicability Guide
+
+Operator patterns structure how the system interacts with the external world. Start with the minimum tooling surface and expand deliberately.
+
+### Decision Matrix
+
+| Pattern | Apply When | Do Not Apply When |
+|---|---|---|
+| **Tool as Operator** | The system needs to interact with external services, files, or APIs through a uniform interface | The system is purely reasoning-based with no external side effects |
+| **Operator Registry** | You have 5+ tools; workers need to discover tools dynamically; governance must scope tool access | You have 1-2 hardcoded tools that every worker always uses |
+| **Skill over Operators** | Recurring multi-step workflows benefit from packaged instructions, strategies, and tool selections | Every task is novel; no workflow repeats enough to justify packaging |
+| **Composable Operator Chain** | Multi-stage operations where one tool's output feeds the next (e.g., search → fetch → extract) | Each tool invocation is independent; composition adds indirection without value |
+| **Operator Isolation** | Tool failures should not crash the worker; untrusted tools need sandboxing | All tools are trusted, well-tested, and fast; isolation overhead is not justified |
+| **Operator Fallback** | Primary tools have reliability issues; alternative providers exist | Each tool is unique with no equivalent alternative; or reliability is already sufficient |
+| **Resource-Aware Invocation** | Tools have rate limits, costs, or latency constraints that require budgeting | Tools are free, unlimited, and fast; cost tracking adds overhead without benefit |
+
+### Start Here
+
+Every system needs **Tool as Operator** (a structured interface to external capabilities). Add the **Operator Registry** once you have more than a handful of tools. Add **Skill over Operators** when you notice teams repeatedly assembling the same tool combinations for similar tasks. The other patterns respond to operational pressures — add them when you observe the specific problem they solve.

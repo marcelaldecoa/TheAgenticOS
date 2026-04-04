@@ -59,6 +59,14 @@ Knowledge-specific policies:
 
 ## Workflow: Knowledge Capture
 
+```mermaid
+flowchart LR
+  Source[Meeting / Document /\nConversation] --> H[Harvest\nExtract decisions,\nrationale, actions]
+  H --> Cu[Curate\nLink, deduplicate,\ncheck conflicts]
+  Cu --> Au[Author\nProduce structured\nknowledge artifact]
+  Au --> KG[Knowledge Graph\nIndexed & linked]
+```
+
 ### The Meeting That Produces Knowledge
 
 A team holds an architecture review meeting. In a traditional organization, the knowledge from this meeting lives in the attendees' memories and maybe a sparse set of meeting notes that no one reads.
@@ -163,6 +171,17 @@ The validator does not just check dates — it cross-references knowledge agains
 ## The Knowledge Flywheel
 
 The Knowledge OS creates a reinforcing cycle:
+
+```mermaid
+flowchart LR
+  A[More knowledge\ncaptured] --> B[Better retrieval\nresults]
+  B --> C[More people\nuse the system]
+  C --> D[Better usage\nanalytics]
+  D --> E[Smarter\ncuration]
+  E --> F[Higher quality\nknowledge]
+  F --> G[More\ntrust]
+  G --> A
+```
 
 1. More knowledge captured → better retrieval results.
 2. Better retrieval results → more people use the system.

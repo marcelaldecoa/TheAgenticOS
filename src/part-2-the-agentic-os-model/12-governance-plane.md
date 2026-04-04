@@ -83,10 +83,11 @@ Escalation is not a failure. It is a design feature. The best agentic systems es
 
 ## The Governance Loop
 
-```text
-Intent → Policy Check → Action → Side Effect → Audit → Feedback
-         ↓ (denied)
-         Escalate or Block
+```mermaid
+flowchart LR
+  Intent --> PC[Policy Check]
+  PC -->|allowed| Action --> SE[Side Effect] --> Audit --> Feedback
+  PC -->|denied| EB[Escalate or Block]
 ```
 
 This loop runs for every action, at every level. It is the heartbeat of a trustworthy system.

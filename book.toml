@@ -17,7 +17,7 @@ no-section-label = false
 git-repository-url = "https://github.com/marcelaldecoa/TheAgenticOS"
 edit-url-template = "https://github.com/marcelaldecoa/TheAgenticOS/edit/main/{path}"
 additional-css = ["theme/custom.css"]
-additional-js = ["theme/zoom.js"]
+additional-js = ["theme/zoom.js", "theme/mermaid-init.js"]
 
 [output.html.print]
 enable = true

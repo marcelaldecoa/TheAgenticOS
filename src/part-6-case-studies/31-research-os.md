@@ -75,17 +75,35 @@ The kernel interprets:
 
 ### 2. Decomposition
 
-```text
-1. Identify competitors' public pricing pages     (Scout)
-2. Search for pricing-related press releases       (Scout)    → parallel with 1
-3. Search for analyst reports on market pricing    (Scout)    → parallel with 1
-4. Deep-analyze Competitor A pricing               (Analyst)  → depends on 1, 2, 3
-5. Deep-analyze Competitor B pricing               (Analyst)  → parallel with 4
-6. Deep-analyze Competitor C pricing               (Analyst)  → parallel with 4
-7. Synthesize pricing patterns across competitors  (Synthesizer) → depends on 4, 5, 6
-8. Evaluate evidence quality                       (Critic)   → depends on 7
-9. Develop positioning recommendations             (Synthesizer) → depends on 7, 8
-10. Write final report                             (Writer)   → depends on 9
+```mermaid
+flowchart TD
+  T1["1. Identify competitors' pricing pages\n(Scout)"]
+  T2["2. Search pricing press releases\n(Scout)"]
+  T3["3. Search analyst reports\n(Scout)"]
+  T4["4. Deep-analyze Competitor A\n(Analyst)"]
+  T5["5. Deep-analyze Competitor B\n(Analyst)"]
+  T6["6. Deep-analyze Competitor C\n(Analyst)"]
+  T7["7. Synthesize pricing patterns\n(Synthesizer)"]
+  T8["8. Evaluate evidence quality\n(Critic)"]
+  T9["9. Develop recommendations\n(Synthesizer)"]
+  T10["10. Write final report\n(Writer)"]
+
+  T1 --> T4
+  T2 --> T4
+  T3 --> T4
+  T1 --> T5
+  T2 --> T5
+  T3 --> T5
+  T1 --> T6
+  T2 --> T6
+  T3 --> T6
+  T4 --> T7
+  T5 --> T7
+  T6 --> T7
+  T7 --> T8
+  T7 --> T9
+  T8 --> T9
+  T9 --> T10
 ```
 
 ### 3. The Scout Phase

@@ -176,3 +176,30 @@ Recovery logic is itself fallible. Multiple recovery attempts can consume signif
 
 ### Related Patterns
 Reflective Retry, Failure Containment, Human Escalation
+
+---
+
+## Applicability Guide
+
+Process patterns govern how workers are created, scoped, and managed. The right combination depends on your concurrency needs and failure tolerance.
+
+### Decision Matrix
+
+| Pattern | Apply When | Do Not Apply When |
+|---|---|---|
+| **Subagent as Process** | You need multiple workers with independent context and lifecycle | A single agent handles all work serially without context conflicts |
+| **Context Sandbox** | Workers must be isolated from data and tools they should not access; security boundaries matter | You have a single trusted worker operating on a single task in a controlled environment |
+| **Ephemeral Worker** | Tasks are stateless and independent; you want clean context for each task | Workers need to accumulate state across tasks (e.g., long-running monitoring); creation overhead is prohibitive |
+| **Scoped Worker Contract** | Workers are delegated to with clear success criteria; you need verifiable outputs | The kernel executes everything directly; there is no delegation |
+| **Parallel Specialist Swarm** | A task decomposes into independent, parallelizable subtasks assigned to different specialists | Tasks are inherently sequential; parallelism adds coordination cost without latency benefit |
+| **Reviewer Process** | Output quality is critical and benefits from a separate review pass; adversarial checking adds value | The output has automated validation (tests, type-checks) that is sufficient; the review cost exceeds the quality gain |
+| **Recovery Process** | Failures require diagnosis and alternative strategies, not just retries | Failures are transient (network timeouts) and simple retry is sufficient; or the task is cheap enough to abandon |
+
+### The Minimum Viable Process Fabric
+
+Start with **Ephemeral Workers** and **Scoped Worker Contracts**. These two patterns give you isolated execution with clear interfaces. Add the others as complexity demands:
+
+- Need security isolation? Add **Context Sandbox**.
+- Multiple independent subtasks? Add **Parallel Specialist Swarm**.
+- Quality-critical output? Add **Reviewer Process**.
+- Complex failure scenarios? Add **Recovery Process**.

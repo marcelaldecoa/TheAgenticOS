@@ -125,14 +125,19 @@ Performance optimization in agentic systems is not about minimizing cost — it 
 
 The quality-cost frontier describes the tradeoff:
 
-```text
-Quality
-  ↑
-  │      ●  (high quality, high cost — over-engineered)
-  │    ●     (optimal — best quality for the cost)
-  │  ●       (good enough — acceptable quality, lower cost)
-  │●         (cheap but poor — false economy)
-  └──────────→ Cost
+```mermaid
+quadrantChart
+  title Quality-Cost Frontier
+  x-axis "Low Cost" --> "High Cost"
+  y-axis "Low Quality" --> "High Quality"
+  quadrant-1 "Over-engineered"
+  quadrant-2 "Optimal"
+  quadrant-3 "Good enough"
+  quadrant-4 "False economy"
+  "Cheap but poor": [0.15, 0.2]
+  "Good enough": [0.35, 0.5]
+  "Optimal": [0.55, 0.78]
+  "Over-engineered": [0.85, 0.88]
 ```
 
 Different tasks have different optimal points on this frontier:

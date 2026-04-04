@@ -16,6 +16,35 @@ Decomposition is how the Agentic OS turns broad intent into focused work. Each s
 
 Not all decomposition is equal. Tasks fall along a spectrum of decomposability:
 
+```mermaid
+flowchart LR
+  subgraph Trivial["Trivially\nDecomposable"]
+    direction TB
+    T1[Task A] 
+    T2[Task B]
+    T3[Task C]
+  end
+  subgraph Sequential["Sequentially\nDecomposable"]
+    direction TB
+    S1[Step 1] --> S2[Step 2] --> S3[Step 3]
+  end
+  subgraph Graph["Graph\nDecomposable"]
+    direction TB
+    G1[A] --> G3[C]
+    G2[B] --> G3
+    G3 --> G4[D]
+  end
+  subgraph Iterative["Iteratively\nDecomposable"]
+    direction TB
+    I1[Step] --> I2[Learn] --> I3[Replan]
+    I3 -.-> I1
+  end
+  subgraph NonDecomp["Non-\nDecomposable"]
+    direction TB
+    N1[Holistic\nReasoning]
+  end
+```
+
 ### Trivially Decomposable
 
 Tasks that split naturally into independent parts. "Rename all occurrences of `userId` to `user_id` in these five files." Five independent find-and-replace operations. No dependencies, no coordination needed.

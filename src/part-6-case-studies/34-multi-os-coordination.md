@@ -98,11 +98,20 @@ Event-driven coordination is loosely coupled — publishers do not know who subs
 
 Multiple OSs collaborate through a series of events without a central coordinator. Each OS knows its role and reacts to events from others:
 
-```text
-1. Support OS: Receives customer report → publishes "bug_reported" event
-2. Coding OS: Hears "bug_reported" → investigates → publishes "bug_fixed" event
-3. Knowledge OS: Hears "bug_fixed" → updates documentation → publishes "docs_updated" event
-4. Support OS: Hears "bug_fixed" → notifies customer → closes case
+```mermaid
+sequenceDiagram
+  participant S as Support OS
+  participant C as Coding OS
+  participant K as Knowledge OS
+
+  S->>S: Receives customer report
+  S--)C: publishes "bug_reported"
+  C->>C: Investigates bug
+  C--)S: publishes "bug_fixed"
+  C--)K: publishes "bug_fixed"
+  K->>K: Updates documentation
+  K--)S: publishes "docs_updated"
+  S->>S: Notifies customer & closes case
 ```
 
 Choreography works when the workflow is well-known and each participant's role is clear. It becomes fragile when workflows are complex or when failures require coordinated recovery.
@@ -111,14 +120,13 @@ Choreography works when the workflow is well-known and each participant's role i
 
 A coordinator OS (or a dedicated federation orchestrator) manages the workflow. It sends requests to each OS, monitors progress, handles failures, and ensures the workflow completes.
 
-```text
-Orchestrator:
-  1. Receive bug report from Support OS
-  2. Send investigation request to Coding OS
-  3. Wait for fix confirmation
-  4. Send documentation update to Knowledge OS
-  5. Send resolution notification to Support OS
-  6. Close workflow
+```mermaid
+flowchart TD
+  O1["1. Receive bug report\nfrom Support OS"] --> O2["2. Send investigation request\nto Coding OS"]
+  O2 --> O3["3. Wait for fix confirmation"]
+  O3 --> O4["4. Send documentation update\nto Knowledge OS"]
+  O4 --> O5["5. Send resolution notification\nto Support OS"]
+  O5 --> O6["6. Close workflow"]
 ```
 
 Orchestration is more robust for complex workflows — the orchestrator maintains the overall state and can handle failures (retry, skip, escalate) with full visibility into the workflow's progress.
@@ -127,13 +135,14 @@ Orchestration is more robust for complex workflows — the orchestrator maintain
 
 For long-running, multi-OS workflows that may partially fail, the saga pattern provides compensating actions:
 
-```text
-1. Support OS: Reserve case → success
-2. Coding OS: Fix bug → success
-3. Knowledge OS: Update docs → failure
-4. Compensate: Coding OS rolls back? No — the fix is independently valid.
-   Retry: Knowledge OS retries documentation update.
-5. If retry fails: Escalate to human for manual documentation update.
+```mermaid
+flowchart TD
+  S1["1. Support OS: Reserve case"] -->|success| S2["2. Coding OS: Fix bug"]
+  S2 -->|success| S3["3. Knowledge OS: Update docs"]
+  S3 -->|failure| R["Retry: Knowledge OS\nretries documentation update"]
+  R -->|success| Done[Workflow Complete]
+  R -->|failure| Esc["Escalate to human for\nmanual documentation update"]
+  S3 -->|success| Done
 ```
 
 Each step has a compensating action defined. If a step fails, previous steps are compensated if necessary, or the workflow adapts. The key insight: not every failure requires rollback. A bug fix is valuable even if the documentation update fails. The saga pattern acknowledges partial success.

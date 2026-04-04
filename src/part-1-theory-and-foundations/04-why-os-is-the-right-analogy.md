@@ -10,6 +10,44 @@ Agentic systems face the same class of problem with a different resource: intell
 
 ## The Mapping
 
+```mermaid
+flowchart LR
+  subgraph OS["Traditional OS"]
+    direction TB
+    K1[Kernel]
+    P1[Process]
+    M1[Memory]
+    F1[Filesystem]
+    S1[Scheduler]
+    C1[Capabilities]
+    SC1[Syscalls]
+    D1[Drivers]
+    A1[Audit Log]
+  end
+  subgraph AOS["Agentic OS"]
+    direction TB
+    K2[Cognitive Kernel]
+    P2[Subagent / Worker]
+    M2[Layered Memory Plane]
+    F2[Knowledge Store]
+    S2[Task Planner]
+    C2[Permission Model]
+    SC2[Tool Invocations]
+    D2[Operator Adapters]
+    A2[Execution Journal]
+  end
+
+  K1 --> K2
+  P1 --> P2
+  M1 --> M2
+  F1 --> F2
+  S1 --> S2
+  C1 --> C2
+  SC1 --> SC2
+  D1 --> D2
+  A1 --> A2
+```
+
 | OS Concept | Agentic Equivalent | Purpose |
 |------------|-------------------|---------|
 | **Kernel** | Cognitive Kernel | Routes intent, coordinates reasoning, enforces policy |
