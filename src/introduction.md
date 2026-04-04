@@ -63,3 +63,11 @@ This book stands on three pillars:
 **Governed agency.** The future is not autonomous chaos, but structured, bounded, auditable agency.
 
 Agentic systems require the same class of abstractions that made operating systems reliable: isolation, scheduling, memory discipline, permissions, observability, and extensibility. This book maps those abstractions to the world of intelligent software and formalizes them as design patterns you can use, compose, and extend.
+
+## Hands-On Implementations
+
+This book comes with working reference implementations you can use today. Each case study in Part VI has a corresponding workspace with real VS Code Copilot agents, skills, MCP configurations, and tutorials:
+
+> **[github.com/marcelaldecoa/TheAgenticOS/implementations](https://github.com/marcelaldecoa/TheAgenticOS/tree/main/implementations)**
+
+Copy a `.github/` folder into your project and the agents are live.

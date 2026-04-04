@@ -48,3 +48,6 @@ Every escalation must include:
 ### 3. Ensure Continuity
 - The escalation must be self-contained — the human must NOT need to re-investigate
 - Include all relevant context so the handoff is seamless
+
+## Resources
+- [Escalation template](./references/escalation-template.md) — structured format for escalation packages

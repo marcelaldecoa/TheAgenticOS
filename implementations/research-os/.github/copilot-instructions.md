@@ -27,5 +27,6 @@ This workspace implements a **Research OS** — an Agentic Operating System for 
 
 - Use `@scout` for initial source gathering
 - Use `@analyst` for deep source analysis
+- Use `@synthesizer` for combining analyst findings into coherent insights
 - Use `@critic` for quality checking findings
 - For simple fact-finding: handle directly without delegation

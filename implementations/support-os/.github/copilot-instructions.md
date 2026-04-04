@@ -14,6 +14,7 @@ This workspace implements a **Support OS** — an Agentic Operating System for c
 - **Empathy is structural**: Tone adapts to customer sentiment. No jargon. No blame.
 - **Known issues first**: Always check the knowledge base before investigating from scratch.
 - **Escalate well**: When escalating, package everything the human agent needs — never force them to re-investigate.
+- **Communicate clearly**: Use `@communicator` for all customer-facing responses.
 
 ## Data Governance
 

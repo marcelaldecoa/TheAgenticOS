@@ -420,3 +420,7 @@ def log_correlation_trace(messages: list[FederationMessage]) -> dict:
 
 Key patterns: **federation bus** (message routing with data classification enforcement), **federation plugin** (`@kernel_function` enabling agents to call across OS boundaries), **coordinator agent** (single agent with federation capability orchestrating the cross-OS workflow), **cross-OS audit trail** (correlation IDs linking events across independent systems).
 
+---
+
+> **Try it yourself**: The complete Multi-OS coordination — `@coordinator` agent with 4 domain delegates, federation governance instructions, and tutorial — is available at [`implementations/multi-os/`](https://github.com/marcelaldecoa/TheAgenticOS/tree/main/implementations/multi-os).
+

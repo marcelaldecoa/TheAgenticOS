@@ -30,7 +30,8 @@ Delegate to `@analyst` for each competitor:
 - Note recent changes or trends
 
 ### 4. Synthesis
-Produce a comparative analysis:
+Delegate to `@synthesizer`:
+- Produce a comparative analysis
 - Side-by-side comparison table
 - Key differentiators
 - Market trends and patterns
@@ -48,3 +49,6 @@ Structured report with:
 - Detailed comparison
 - Confidence-rated recommendations
 - Sources cited
+
+## Resources
+- [Report template](./references/report-template.md) — structure for the final deliverable

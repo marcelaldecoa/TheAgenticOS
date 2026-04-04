@@ -57,3 +57,6 @@ This skill uses all three specialist agents:
 1. `@coder` — writes the implementation
 2. `@tester` — writes and runs tests
 3. `@reviewer` — reviews the complete change
+
+## Resources
+- [Feature specification template](./references/feature-spec-template.md) — use for the planning step

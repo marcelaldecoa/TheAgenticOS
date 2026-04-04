@@ -50,3 +50,6 @@ Delegate to `@reviewer` for the detailed assessment.
 
 ## Output
 A structured review with findings by severity (Critical > Major > Minor) and an overall recommendation (Approve / Request Changes).
+
+## Resources
+- [Code review checklist](./references/review-checklist.md) — systematic review dimensions

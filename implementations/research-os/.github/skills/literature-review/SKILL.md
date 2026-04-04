@@ -31,6 +31,7 @@ Delegate to `@analyst` for top sources:
 - Rate evidence quality
 
 ### 4. Synthesize
+Delegate to `@synthesizer`:
 - Group findings by theme
 - Identify consensus and disagreement
 - Note evidence gaps

@@ -333,3 +333,7 @@ async def citation_filter(context: FunctionInvocationContext, next):
 
 This implementation shows the research-specific patterns: **sequential orchestration** (scout → analyst → synthesizer → critic), **web research plugin** (search + page extraction as `@kernel_function`), **citation governance** (SK filter that checks outputs), and **role separation** (scout collects, analyst evaluates, synthesizer connects, critic challenges).
 
+---
+
+> **Try it yourself**: The complete Research OS — agents (`@scout`, `@analyst`, `@synthesizer`, `@critic`), skills (`/competitive-analysis`, `/literature-review`), citation standards, and tutorial — is available at [`implementations/research-os/`](https://github.com/marcelaldecoa/TheAgenticOS/tree/main/implementations/research-os).
+

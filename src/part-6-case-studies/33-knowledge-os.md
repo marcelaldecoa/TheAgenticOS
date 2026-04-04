@@ -380,3 +380,7 @@ async def validate_knowledge() -> str:
 
 Key patterns: **knowledge store as SK plugin** (`@kernel_function` for search, store, link, validate), **classification-based access control** (pgvector queries filtered by classification level), **harvester-curator pipeline** (SequentialOrchestration), **direct agent invocation** (single-agent validation without orchestration overhead).
 
+---
+
+> **Try it yourself**: The complete Knowledge OS — agents (`@harvester`, `@curator`, `@validator`, `@retriever`), skills (`/harvest-knowledge`, `/validate-freshness`), and tutorial — is available at [`implementations/knowledge-os/`](https://github.com/marcelaldecoa/TheAgenticOS/tree/main/implementations/knowledge-os).
+

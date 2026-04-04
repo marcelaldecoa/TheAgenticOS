@@ -30,7 +30,7 @@ Based on triage result:
 - If engineering needed → prepare escalation package
 
 ### 3. Communicate
-Draft a customer response that:
+Delegate to `@communicator` to draft a customer response that:
 - Explains what happened (no jargon)
 - States what was done to resolve it
 - Offers follow-up options
