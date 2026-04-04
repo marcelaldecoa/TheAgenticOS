@@ -1,0 +1,19 @@
+﻿{
+  "mcpServers": {
+    "support-tools": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.support"],
+      "env": {
+        "DB_CONNECTION": "${env:SUPPORT_DB_URL}",
+        "LOG_SERVICE_URL": "${env:LOG_SERVICE_URL}"
+      }
+    },
+    "knowledge-base": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.knowledge_base"],
+      "env": {
+        "KB_VECTOR_STORE_URL": "${env:KB_VECTOR_STORE_URL}"
+      }
+    }
+  }
+}

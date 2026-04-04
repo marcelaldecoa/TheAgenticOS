@@ -1,0 +1,11 @@
+﻿{
+  "mcpServers": {
+    "web-research": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.web_research"],
+      "env": {
+        "TAVILY_API_KEY": "${env:TAVILY_API_KEY}"
+      }
+    }
+  }
+}

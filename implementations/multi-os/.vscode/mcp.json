@@ -1,0 +1,11 @@
+﻿{
+  "mcpServers": {
+    "federation-bus": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.federation"],
+      "env": {
+        "REGISTRY_URL": "${env:FEDERATION_REGISTRY_URL}"
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+﻿{
+  "mcpServers": {
+    "filesystem": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.filesystem"],
+      "env": {
+        "PROJECT_ROOT": "${workspaceFolder}"
+      }
+    },
+    "git": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.git"]
+    }
+  }
+}

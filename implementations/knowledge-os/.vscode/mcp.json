@@ -1,0 +1,11 @@
+﻿{
+  "mcpServers": {
+    "knowledge-store": {
+      "command": "python",
+      "args": ["-m", "mcp_servers.knowledge_store"],
+      "env": {
+        "DATABASE_URL": "${env:KNOWLEDGE_DB_URL}"
+      }
+    }
+  }
+}
