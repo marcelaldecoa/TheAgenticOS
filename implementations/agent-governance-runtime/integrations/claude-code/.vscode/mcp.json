@@ -1,0 +1,11 @@
+{
+  "servers": {
+    "agr-governance": {
+      "command": "agr-mcp",
+      "env": {
+        "AGR_SERVER_URL": "http://localhost:8600",
+        "AGR_AGENT_TOKEN": "YOUR_TOKEN_HERE"
+      }
+    }
+  }
+}

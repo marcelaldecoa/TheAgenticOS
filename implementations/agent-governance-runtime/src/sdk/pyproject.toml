@@ -1,0 +1,19 @@
+[project]
+name = "agr-sdk"
+version = "0.1.0"
+description = "Agent Governance Runtime — Python SDK"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "Marcel Aldecoa" }]
+dependencies = [
+    "httpx>=0.27,<1",
+    "pydantic>=2.7,<3",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["agr_sdk*"]
