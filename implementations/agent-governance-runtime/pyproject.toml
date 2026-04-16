@@ -1,0 +1,23 @@
+# Agent Governance Runtime — Workspace Root
+# This is a monorepo with three packages: server, sdk, cli.
+# Each has its own pyproject.toml for independent installation.
+
+[project]
+name = "agent-governance-runtime"
+version = "0.1.0"
+description = "A DAPR-like governance runtime for AI agents across heterogeneous platforms."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+authors = [{ name = "Marcel Aldecoa" }]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["src/server/tests"]
+asyncio_mode = "auto"
