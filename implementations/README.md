@@ -90,6 +90,91 @@ Multi-OS federation — a coordinator that routes work across independent OSs.
 | Memory | MCP-backed storage | `knowledge-store` (pgvector), `knowledge-base` (vector search) |
 | Skill Resources | `references/` folders in skills | Templates, checklists loaded on demand |
 
+---
+
+## Agent Governance Runtime (AGR)
+
+### [`agent-governance-runtime/`](agent-governance-runtime/)
+
+**A DAPR-like governance runtime for AI agents across heterogeneous platforms.**
+
+> *"You don't need to standardize on one agent platform. You need to standardize on one governance plane."*
+
+### The Problem
+
+The case studies above show how to build effective agents. But enterprises face a harder question: **how do you govern dozens or hundreds of agents across different platforms?**
+
+Today, organizations have "shadow agents" — AI agents built on N8N, GPT, Claude, Gemini, Copilot Studio, and custom code — with no central visibility, no audit trail, and no capability governance. CIOs and CISOs cannot answer basic questions:
+
+- How many agents operate in our organization?
+- Which agents have write access to production systems?
+- What data flows through which agents?
+- Who approved this agent's capabilities?
+- What is the total cost of our agent fleet?
+
+### The Insight: DAPR as Precedent
+
+DAPR succeeded by providing infrastructure building blocks **alongside** microservices — without replacing them. AGR applies the same pattern to agents: govern the boundaries without owning the runtime.
+
+| DAPR | AGR |
+|------|-----|
+| Sidecar alongside your microservice | MCP server / SDK alongside your agent |
+| Building blocks (state, pub/sub) | Building blocks (registry, audit, policy, budget, approvals) |
+| Pluggable components (Redis, Cosmos) | Pluggable backends (SQLite, PostgreSQL, Cosmos) |
+| Control plane (Kubernetes) | Governance plane (fleet management) |
+
+### Relationship to the Book
+
+AGR is the **runtime implementation** of concepts defined in The Agentic OS:
+
+| Book Chapter | AGR Component |
+|-------------|---------------|
+| [Ch. 12 — Governance Plane](../src/part-2-the-agentic-os-model/12-governance-plane.md) | The entire runtime — this IS the governance plane made real |
+| [Ch. 17 — Governance Patterns](../src/part-3-design-patterns/17-governance-patterns.md) | Access profiles, policy engine, approval flows |
+| Ch. 17 — Permission Gate pattern | `/governance/evaluate` — single authoritative decision point |
+| Ch. 17 — Auditable Action pattern | Append-only audit trail with trace reconstruction |
+| Ch. 17 — Risk-Tiered Execution | `allow` / `deny` / `require_approval` decisions |
+| Ch. 17 — Human Escalation pattern | Approval flows with operator RBAC |
+| [Ch. 25 — Reference Architecture](../src/part-5-building-the-system/25-reference-architecture.md) | Budget tracking + enforcement |
+| [Appendix B — Governance Standards](../src/appendices/b-landscape-and-standards.md) | Compliance export with evidence completeness |
+
+While the case studies (Coding OS, Research OS, etc.) demonstrate how agents work **within** a single system, AGR answers the enterprise question: how do you govern agents **across** all systems.
+
+### What It Includes
+
+| Building Block | Description |
+|---------------|-------------|
+| **Agent Registry** | Central catalog with access profiles (MCPs, skills, actions, data classification) |
+| **Policy Engine** | Declarative tenant-wide rules with precedence (`deny > require_approval > allow`) |
+| **Unified Evaluation** | `POST /governance/evaluate` — status + profile + policy + budget → one decision |
+| **Audit Trail** | Append-only action logging with distributed trace reconstruction |
+| **Budget Tracking** | Per-agent consumption limits (request hard-enforce, cost soft-enforce) |
+| **Approval Flows** | Human-in-the-loop with operator RBAC, idempotent one-time-use approvals |
+| **Fleet Dashboard** | Summary, top consumers, violations, approval stats |
+| **Compliance Export** | JSON evidence report with schema versioning and gap detection |
+| **MCP Server** | Governance as MCP — works natively with Claude Code, Copilot, any MCP agent |
+
+### Platform Integrations
+
+| Platform | Method |
+|----------|--------|
+| **Claude Code** | MCP server + governance skill + instructions |
+| **N8N** | HTTP Request nodes → AGR REST API |
+| **Custom Python** | SDK (`GovernanceClient` with token auth) |
+| **Any HTTP client** | REST API (OpenAPI at `/docs`) |
+
+### Getting Started
+
+```bash
+cd implementations/agent-governance-runtime
+cd src/server && pip install -e ".[dev]" && agr-server
+# → API at http://localhost:8600, Swagger at /docs
+```
+
+See the full [AGR README](agent-governance-runtime/README.md) for quick start, API reference, and integration guides.
+
+---
+
 ## File Inventory
 
 ```
@@ -175,4 +260,16 @@ implementations/
     │   └── instructions/
     │       └── federation-governance.instructions.md
     └── .vscode/mcp.json
+├── agent-governance-runtime/      # AGR — Governance runtime for agent fleets
+│   ├── README.md
+│   ├── src/
+│   │   ├── server/                # FastAPI governance API
+│   │   ├── mcp-server/            # AGR as MCP server
+│   │   ├── sdk/                   # Python SDK
+│   │   └── cli/                   # CLI tool
+│   ├── integrations/
+│   │   ├── claude-code/           # Skill + instructions + MCP config
+│   │   └── n8n/                   # Workflow templates
+│   ├── deploy/Dockerfile
+│   └── examples/
 ```
