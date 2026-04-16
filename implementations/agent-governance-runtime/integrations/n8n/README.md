@@ -7,17 +7,7 @@ No custom plugin needed — N8N's built-in nodes call the AGR REST API directly.
 
 ## Pattern: Governed N8N Workflow
 
-```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Trigger     │────▶│  AGR: Check  │────▶│  Execute     │
-│   (any)       │     │  Access      │     │  Action      │
-└──────────────┘     └──────┬───────┘     └──────┬───────┘
-                            │                     │
-                     ┌──────▼───────┐     ┌──────▼───────┐
-                     │  If: denied  │     │  AGR: Audit  │
-                     │  → Stop      │     │  Log         │
-                     └──────────────┘     └──────────────┘
-```
+![N8N Governed Workflow](../../docs/diagrams/n8n-governed-workflow.drawio.svg)
 
 ## Setup
 

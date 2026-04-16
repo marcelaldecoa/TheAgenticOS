@@ -18,28 +18,7 @@ AGR provides **governance building blocks** that work with any agent platform �
 
 ## Architecture
 
-```
-┌─────────────────── AGR Server (:8600) ────────────────────┐
-│                                                            │
-│  /registry/agents     — Agent catalog & lifecycle          │
-│  /governance/evaluate — THE authoritative decision point   │
-│  /policies/rules      — Tenant-wide policy engine          │
-│  /audit/records       — Append-only audit trail            │
-│  /auth/resolve        — Token → identity resolution        │
-│  /budget/{agent_id}   — Consumption tracking               │
-│  /approvals/*         — Human-in-the-loop approval flows   │
-│  /operators           — Operator RBAC (admin/approver)     │
-│  /dashboard/*         — Fleet stats for CISOs              │
-│  /compliance/export   — Evidence report for auditors       │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-         ▲                    ▲                ▲
-    ┌────┴─────┐    ┌────────┴──────┐   ┌─────┴──────┐
-    │ MCP Server│    │ Python SDK    │   │ HTTP/REST  │
-    │ (Claude,  │    │ (custom       │   │ (N8N,      │
-    │  Copilot) │    │  agents)      │   │  any HTTP) │
-    └──────────┘    └───────────────┘   └────────────┘
-```
+![AGR Architecture](docs/diagrams/architecture.drawio.svg)
 
 ## Quick Start
 
@@ -101,9 +80,7 @@ curl -X POST http://localhost:8600/governance/evaluate \
 
 Every decision flows through one endpoint — `/governance/evaluate`:
 
-```
-agent status → access profile → tenant policies → budget → decision
-```
+![Evaluation Flow](docs/diagrams/evaluation-flow.drawio.svg)
 
 **Precedence**: deny > require_approval > allow. Tenant policies override agent profiles.
 
