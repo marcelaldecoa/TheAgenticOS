@@ -152,10 +152,28 @@ async def evaluate(
     if not reason_parts:
         reason_parts.append("No restrictions apply")
 
+    # 6. If require_approval, check for existing approved approval request
+    approval_id = None
+    if final_decision == AccessDecision.REQUIRE_APPROVAL:
+        approved = await store.find_approved_for_context(
+            agent_id, request.action, request.resource, settings.default_tenant,
+        )
+        if approved:
+            # Consume the approval (one-time-use)
+            consumed = await store.consume_approval(approved.id, settings.default_tenant)
+            if consumed:
+                final_decision = AccessDecision.ALLOW
+                approval_id = approved.id
+                reason_parts.append(f"Approved via approval {approved.id}")
+
     reason = "; ".join(reason_parts)
 
-    # Auto-audit the governance decision
-    await _audit_governance_decision(agent_id, request.action, final_decision.value, reason)
+    # Auto-audit the governance decision with structured fields
+    await _audit_governance_decision(
+        agent_id, request.action, final_decision.value, reason,
+        matched_policy_ids=[r.policy_id for r in matched_rules],
+        approval_id=approval_id,
+    )
 
     return PolicyEvalResponse(
         decision=final_decision,
@@ -168,10 +186,20 @@ async def evaluate(
 
 
 async def _audit_governance_decision(
-    agent_id: str, action: str, decision: str, reason: str
+    agent_id: str, action: str, decision: str, reason: str,
+    *, matched_policy_ids: list[str] | None = None, approval_id: str | None = None,
 ) -> None:
-    """Auto-audit every governance evaluation."""
+    """Auto-audit every governance evaluation with structured fields."""
     result = AuditResult.SUCCESS if decision == "allow" else AuditResult.DENIED
+    metadata = {
+        "governance_decision": decision,
+        "decision_source": "governance_evaluate",
+    }
+    if matched_policy_ids:
+        metadata["matched_policy_ids"] = matched_policy_ids
+    if approval_id:
+        metadata["approval_id"] = approval_id
+
     await _get_store().append_audit_record(
         AuditRecordCreate(
             agent_id=agent_id,
@@ -179,6 +207,7 @@ async def _audit_governance_decision(
             result=result,
             detail=f"Decision: {decision}. {reason}",
             severity=AuditSeverity.INFO if decision == "allow" else AuditSeverity.WARNING,
+            metadata=metadata,
         ),
         settings.default_tenant,
     )

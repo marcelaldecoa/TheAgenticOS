@@ -24,6 +24,10 @@ from agr_server.api import budget as budget_api
 from agr_server.api import governance as governance_api
 from agr_server.api import policy as policy_api
 from agr_server.api import registry as registry_api
+from agr_server.api import operators as operators_api
+from agr_server.api import approvals as approvals_api
+from agr_server.api import dashboard as dashboard_api
+from agr_server.api import compliance as compliance_api
 from agr_server.config import settings
 from agr_server.store.sqlite import SQLiteStore
 
@@ -40,6 +44,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     policy_api.set_store(store)
     budget_api.set_store(store)
     governance_api.set_store(store)
+    operators_api.set_store(store)
+    approvals_api.set_store(store)
+    dashboard_api.set_store(store)
+    compliance_api.set_store(store)
     yield
     await store.close()
 
@@ -70,6 +78,10 @@ app.include_router(auth_api.router)
 app.include_router(policy_api.router)
 app.include_router(budget_api.router)
 app.include_router(governance_api.router)
+app.include_router(operators_api.router)
+app.include_router(approvals_api.router)
+app.include_router(dashboard_api.router)
+app.include_router(compliance_api.router)
 
 
 @app.get("/health", tags=["system"])

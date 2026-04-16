@@ -11,6 +11,10 @@ from agr_server.api import budget as budget_api
 from agr_server.api import governance as governance_api
 from agr_server.api import policy as policy_api
 from agr_server.api import registry as registry_api
+from agr_server.api import operators as operators_api
+from agr_server.api import approvals as approvals_api
+from agr_server.api import dashboard as dashboard_api
+from agr_server.api import compliance as compliance_api
 from agr_server.main import app
 from agr_server.store.sqlite import SQLiteStore
 
@@ -26,6 +30,10 @@ async def _setup_store(tmp_path):
     policy_api.set_store(store)
     budget_api.set_store(store)
     governance_api.set_store(store)
+    operators_api.set_store(store)
+    approvals_api.set_store(store)
+    dashboard_api.set_store(store)
+    compliance_api.set_store(store)
     yield
     await store.close()
 
