@@ -19,6 +19,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from agr_server import __version__
 from agr_server.api import audit as audit_api
+from agr_server.api import auth as auth_api
+from agr_server.api import budget as budget_api
+from agr_server.api import governance as governance_api
+from agr_server.api import policy as policy_api
 from agr_server.api import registry as registry_api
 from agr_server.config import settings
 from agr_server.store.sqlite import SQLiteStore
@@ -32,6 +36,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await store.initialize()
     registry_api.set_store(store)
     audit_api.set_store(store)
+    auth_api.set_store(store)
+    policy_api.set_store(store)
+    budget_api.set_store(store)
+    governance_api.set_store(store)
     yield
     await store.close()
 
@@ -58,6 +66,10 @@ app.add_middleware(
 
 app.include_router(registry_api.router)
 app.include_router(audit_api.router)
+app.include_router(auth_api.router)
+app.include_router(policy_api.router)
+app.include_router(budget_api.router)
+app.include_router(governance_api.router)
 
 
 @app.get("/health", tags=["system"])

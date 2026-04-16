@@ -60,6 +60,8 @@ async def test_get_agent(client: AsyncClient):
     resp = await client.get("/registry/agents/test-agent-001")
     assert resp.status_code == 200
     assert resp.json()["name"] == "Test Agent"
+    # Token must be redacted from GET responses
+    assert "api_token" not in resp.json()
 
 
 @pytest.mark.asyncio
@@ -76,6 +78,9 @@ async def test_list_agents(client: AsyncClient):
     data = resp.json()
     assert data["total"] >= 1
     assert len(data["items"]) >= 1
+    # Tokens must be redacted from list responses
+    for agent in data["items"]:
+        assert "api_token" not in agent
 
 
 @pytest.mark.asyncio

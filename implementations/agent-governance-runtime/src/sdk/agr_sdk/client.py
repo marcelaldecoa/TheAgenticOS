@@ -7,14 +7,20 @@ Usage::
     gov = GovernanceClient(server_url="http://localhost:8600", agent_id="my-agent")
 
     # Register on startup
-    gov.register(name="My Agent", platform="custom", archetype="executor",
-                 owner_team="eng", owner_contact="eng@co.com")
+    record = gov.register(
+        name="My Agent", platform="custom",
+        owner_team="eng", owner_contact="eng@co.com",
+        access_profile={"actions": {"deploy.*": "deny"}},
+    )
+    token = record["api_token"]  # Save this — shown only once
 
-    # Before tool calls
-    decision = gov.check_capability("email.send")
-    if decision.granted:
+    # Use token-based auth for all subsequent calls
+    gov = GovernanceClient(server_url="http://localhost:8600", token=token)
+
+    # Check access before actions
+    decision = gov.evaluate("email.send")
+    if decision["decision"] == "allow":
         send_email(...)
-        gov.audit_log(action="email.send", result="success")
 
     # Or use the context manager for automatic audit logging
     with gov.action("email.send", intent="Notify customer") as act:
@@ -30,14 +36,6 @@ from dataclasses import dataclass, field
 from typing import Any, Generator
 
 import httpx
-
-
-@dataclass
-class CapabilityDecision:
-    """Result of a capability check."""
-
-    granted: bool
-    reason: str | None = None
 
 
 @dataclass
@@ -67,8 +65,9 @@ class GovernanceClient:
     """Client for the Agent Governance Runtime API.
 
     Provides a thin, ergonomic wrapper for agent developers to:
-    - Register agents
-    - Check capabilities before tool calls
+    - Register agents and receive API tokens
+    - Evaluate actions against governance policies
+    - Check MCP and action access
     - Log audit records after actions
     """
 
@@ -77,11 +76,18 @@ class GovernanceClient:
         server_url: str = "http://localhost:8600",
         agent_id: str | None = None,
         *,
+        token: str | None = None,
         timeout: float = 10.0,
     ) -> None:
         self.server_url = server_url.rstrip("/")
         self.agent_id = agent_id
-        self._client = httpx.Client(base_url=self.server_url, timeout=timeout)
+        self.token = token
+        headers = {}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        self._client = httpx.Client(
+            base_url=self.server_url, timeout=timeout, headers=headers,
+        )
 
     def close(self) -> None:
         """Close the underlying HTTP client."""
@@ -100,33 +106,31 @@ class GovernanceClient:
         *,
         name: str,
         platform: str,
-        archetype: str = "executor",
         owner_team: str,
         owner_contact: str,
         description: str | None = None,
         environment: str | None = None,
-        capabilities: list[dict[str, Any]] | None = None,
+        access_profile: dict[str, Any] | None = None,
         tags: list[str] | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Register this agent in the governance registry.
 
-        Returns the full agent record.
+        Returns the full agent record WITH api_token (shown only once).
         """
         assert self.agent_id, "agent_id is required for registration"
         body: dict[str, Any] = {
             "id": self.agent_id,
             "name": name,
             "platform": platform,
-            "archetype": archetype,
             "owner": {"team": owner_team, "contact": owner_contact},
         }
         if description:
             body["description"] = description
         if environment:
             body["deployment"] = {"environment": environment}
-        if capabilities:
-            body["capabilities_requested"] = capabilities
+        if access_profile:
+            body["access_profile"] = access_profile
         if tags:
             body["tags"] = tags
         body["discovery_method"] = "sdk"
@@ -152,26 +156,55 @@ class GovernanceClient:
         resp.raise_for_status()
         return resp.json()
 
-    # --- Capability Checks ---
+    # --- Governance Evaluation ---
 
-    def check_capability(self, resource: str, action: str = "invoke") -> CapabilityDecision:
-        """Check if this agent has a specific capability.
+    def evaluate(
+        self,
+        action: str,
+        *,
+        resource: str | None = None,
+        context: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Evaluate an action against all governance controls.
 
-        Phase 1: Checks against the agent's ``capabilities_granted`` field.
-        Phase 2: Will evaluate against the policy engine.
+        Returns decision (allow/deny/require_approval), matched rules, budget status.
         """
-        agent = self.get_agent()
+        body: dict[str, Any] = {
+            "agent_id": self.agent_id or "unknown",
+            "action": action,
+        }
+        if resource:
+            body["resource"] = resource
+        if context:
+            body["context"] = context
+
+        resp = self._client.post("/governance/evaluate", json=body)
+        resp.raise_for_status()
+        return resp.json()
+
+    def check_access(self, action: str) -> dict[str, Any]:
+        """Shorthand for evaluate() — check if an action is allowed."""
+        return self.evaluate(action)
+
+    def check_mcp(self, mcp_name: str) -> dict[str, Any]:
+        """Check if an MCP server is allowed. Resolves from agent profile."""
+        resp = self._client.get("/auth/resolve")
+        if resp.status_code != 200:
+            return {"decision": "deny", "reason": "Token not set or invalid"}
+
+        agent = self.get_agent(resp.json()["id"])
         if agent is None:
-            return CapabilityDecision(granted=False, reason="Agent not registered")
+            return {"decision": "deny", "reason": "Agent not found"}
 
-        for cap in agent.get("capabilities_granted", []):
-            if cap.get("resource") == resource and action in cap.get("actions", []):
-                return CapabilityDecision(granted=True)
+        profile = agent.get("access_profile", {})
+        denied = profile.get("mcps_denied", [])
+        allowed = profile.get("mcps_allowed", [])
 
-        return CapabilityDecision(
-            granted=False,
-            reason=f"Capability '{resource}:{action}' not granted",
-        )
+        if mcp_name in denied:
+            return {"decision": "deny", "reason": f"MCP '{mcp_name}' is in denied list"}
+        if allowed and mcp_name not in allowed:
+            return {"decision": "deny", "reason": f"MCP '{mcp_name}' is not in allowed list"}
+        return {"decision": "allow", "reason": f"MCP '{mcp_name}' is allowed"}
 
     # --- Audit Trail ---
 
@@ -185,15 +218,16 @@ class GovernanceClient:
         trace_id: str | None = None,
         run_id: str | None = None,
         session_id: str | None = None,
-        capabilities_exercised: list[str] | None = None,
         cost: dict[str, Any] | None = None,
         severity: str = "info",
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Append an audit record for an action taken by this agent."""
-        assert self.agent_id, "agent_id is required for audit logging"
+        """Append an audit record for an action taken by this agent.
+
+        When using token-based auth, agent_id is derived server-side from the token.
+        """
         body: dict[str, Any] = {
-            "agent_id": self.agent_id,
+            "agent_id": self.agent_id or "unknown",
             "action": action,
             "result": result,
             "severity": severity,
@@ -208,8 +242,6 @@ class GovernanceClient:
             body["run_id"] = run_id
         if session_id:
             body["session_id"] = session_id
-        if capabilities_exercised:
-            body["capabilities_exercised"] = capabilities_exercised
         if cost:
             body["cost"] = cost
         if metadata:
@@ -246,6 +278,37 @@ class GovernanceClient:
                 cost={"duration_ms": ctx.duration_ms},
                 metadata=ctx._metadata,
             )
+
+    # --- Budget ---
+
+    def report_consumption(
+        self,
+        *,
+        requests: int = 1,
+        tokens_input: int = 0,
+        tokens_output: int = 0,
+        cost_usd: float = 0.0,
+        action: str | None = None,
+    ) -> None:
+        """Report resource consumption to the budget tracker."""
+        body: dict[str, Any] = {
+            "agent_id": self.agent_id or "unknown",
+            "requests": requests,
+            "tokens_input": tokens_input,
+            "tokens_output": tokens_output,
+            "cost_usd": cost_usd,
+        }
+        if action:
+            body["action"] = action
+        resp = self._client.post("/budget/consume", json=body)
+        resp.raise_for_status()
+
+    def get_budget(self) -> dict[str, Any]:
+        """Get current budget status."""
+        aid = self.agent_id or "unknown"
+        resp = self._client.get(f"/budget/{aid}")
+        resp.raise_for_status()
+        return resp.json()
 
     # --- System ---
 

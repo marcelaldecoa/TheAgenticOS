@@ -16,6 +16,7 @@ from agr_server.models.agent import (
     AgentCreate,
     AgentList,
     AgentRecord,
+    AgentRecordPublic,
     AgentStatus,
     AgentUpdate,
 )
@@ -25,6 +26,8 @@ from agr_server.models.audit import (
     AuditRecordCreate,
     AuditRecordList,
 )
+from agr_server.models.policy import PolicyCondition, PolicyRule, PolicyRuleCreate, PolicyRuleList, PolicyRuleUpdate
+from agr_server.models.budget import BudgetConsumeRequest, BudgetPeriodUsage, BudgetStatus
 from agr_server.store.base import Store
 
 
@@ -98,6 +101,41 @@ class SQLiteStore(Store):
                 ON audit_records(tenant_id, timestamp);
             CREATE INDEX IF NOT EXISTS idx_audit_action
                 ON audit_records(tenant_id, action);
+
+            CREATE TABLE IF NOT EXISTS policies (
+                id          TEXT PRIMARY KEY,
+                tenant_id   TEXT NOT NULL DEFAULT 'default',
+                name        TEXT NOT NULL,
+                action_pattern TEXT NOT NULL,
+                decision    TEXT NOT NULL,
+                priority    INTEGER NOT NULL DEFAULT 100,
+                enabled     INTEGER NOT NULL DEFAULT 1,
+                data        TEXT NOT NULL,
+                created_at  TEXT NOT NULL,
+                updated_at  TEXT NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_policies_tenant
+                ON policies(tenant_id, enabled);
+            CREATE INDEX IF NOT EXISTS idx_policies_pattern
+                ON policies(tenant_id, action_pattern);
+
+            CREATE TABLE IF NOT EXISTS budget_consumption (
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                tenant_id   TEXT NOT NULL DEFAULT 'default',
+                agent_id    TEXT NOT NULL,
+                period_key  TEXT NOT NULL,
+                period_type TEXT NOT NULL DEFAULT 'hourly',
+                requests    INTEGER NOT NULL DEFAULT 0,
+                tokens_input  INTEGER NOT NULL DEFAULT 0,
+                tokens_output INTEGER NOT NULL DEFAULT 0,
+                cost_usd    REAL NOT NULL DEFAULT 0.0,
+                updated_at  TEXT NOT NULL,
+                UNIQUE(tenant_id, agent_id, period_key, period_type)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_budget_agent
+                ON budget_consumption(tenant_id, agent_id, period_type, period_key);
             """
         )
         await self._db.commit()
@@ -255,7 +293,10 @@ class SQLiteStore(Store):
             [*params, page_size, offset],
         )
         rows = await cursor.fetchall()
-        items = [AgentRecord.model_validate_json(r["data"]) for r in rows]
+        items = [
+            AgentRecordPublic.from_record(AgentRecord.model_validate_json(r["data"]))
+            for r in rows
+        ]
 
         return AgentList(
             items=items,
@@ -387,3 +428,237 @@ class SQLiteStore(Store):
         )
         rows = await cursor.fetchall()
         return [AuditRecord.model_validate_json(r["data"]) for r in rows]
+
+    # --- Policy Engine ---
+
+    async def create_policy(self, rule: PolicyRuleCreate, tenant_id: str) -> PolicyRule:
+        """Create a new policy rule. Returns the created rule with server-assigned ID."""
+        import uuid
+
+        now = _now()
+        rule_id = f"pol-{uuid.uuid4().hex[:12]}"
+        record = PolicyRule(
+            id=rule_id,
+            tenant_id=tenant_id,
+            name=rule.name,
+            description=rule.description,
+            condition=rule.condition,
+            decision=rule.decision,
+            priority=rule.priority,
+            enabled=True,
+            tags=rule.tags,
+            metadata=rule.metadata,
+            created_at=now,
+            updated_at=now,
+        )
+        await self.db.execute(
+            """INSERT INTO policies
+               (id, tenant_id, name, action_pattern, decision, priority, enabled,
+                data, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                rule_id,
+                tenant_id,
+                record.name,
+                record.condition.action_pattern,
+                record.decision.value,
+                record.priority,
+                1,
+                record.model_dump_json(),
+                now.isoformat(),
+                now.isoformat(),
+            ),
+        )
+        await self.db.commit()
+        return record
+
+    async def get_policy(self, policy_id: str, tenant_id: str) -> PolicyRule | None:
+        cursor = await self.db.execute(
+            "SELECT data FROM policies WHERE id = ? AND tenant_id = ?",
+            (policy_id, tenant_id),
+        )
+        row = await cursor.fetchone()
+        if row is None:
+            return None
+        return PolicyRule.model_validate_json(row["data"])
+
+    async def update_policy(
+        self, policy_id: str, update: PolicyRuleUpdate, tenant_id: str
+    ) -> PolicyRule | None:
+        existing = await self.get_policy(policy_id, tenant_id)
+        if existing is None:
+            return None
+
+        now = _now()
+        update_data = update.model_dump(exclude_none=True)
+        merged = existing.model_dump()
+        merged.update(update_data)
+        merged["updated_at"] = now
+
+        record = PolicyRule.model_validate(merged)
+        await self.db.execute(
+            """UPDATE policies SET
+               name = ?, decision = ?, priority = ?, enabled = ?,
+               data = ?, updated_at = ?
+               WHERE id = ? AND tenant_id = ?""",
+            (
+                record.name,
+                record.decision.value,
+                record.priority,
+                1 if record.enabled else 0,
+                record.model_dump_json(),
+                now.isoformat(),
+                policy_id,
+                tenant_id,
+            ),
+        )
+        await self.db.commit()
+        return record
+
+    async def list_policies(
+        self,
+        tenant_id: str,
+        *,
+        page: int = 1,
+        page_size: int = 50,
+        enabled_only: bool = False,
+    ) -> PolicyRuleList:
+        conditions = ["tenant_id = ?"]
+        params: list[str | int] = [tenant_id]
+        if enabled_only:
+            conditions.append("enabled = 1")
+
+        where = " AND ".join(conditions)
+
+        cursor = await self.db.execute(
+            f"SELECT COUNT(*) as cnt FROM policies WHERE {where}", params
+        )
+        row = await cursor.fetchone()
+        total = row["cnt"]
+
+        offset = (page - 1) * page_size
+        cursor = await self.db.execute(
+            f"""SELECT data FROM policies WHERE {where}
+                ORDER BY priority DESC, created_at DESC LIMIT ? OFFSET ?""",
+            [*params, page_size, offset],
+        )
+        rows = await cursor.fetchall()
+        items = [PolicyRule.model_validate_json(r["data"]) for r in rows]
+
+        return PolicyRuleList(
+            items=items,
+            total=total,
+            page=page,
+            page_size=page_size,
+            has_more=(offset + page_size) < total,
+        )
+
+    async def get_enabled_policies(self, tenant_id: str) -> list[PolicyRule]:
+        """Get all enabled policies for evaluation. No pagination — policies should be manageable."""
+        cursor = await self.db.execute(
+            "SELECT data FROM policies WHERE tenant_id = ? AND enabled = 1 ORDER BY priority DESC",
+            (tenant_id,),
+        )
+        rows = await cursor.fetchall()
+        return [PolicyRule.model_validate_json(r["data"]) for r in rows]
+
+    # --- Budget Tracking ---
+
+    async def record_consumption(
+        self, request: BudgetConsumeRequest, tenant_id: str
+    ) -> None:
+        """Record resource consumption. Upserts into period buckets."""
+        now = _now()
+        hourly_key = now.strftime("%Y-%m-%dT%H")
+        daily_key = now.strftime("%Y-%m-%d")
+
+        for period_key, period_type in [(hourly_key, "hourly"), (daily_key, "daily")]:
+            await self.db.execute(
+                """INSERT INTO budget_consumption
+                   (tenant_id, agent_id, period_key, period_type,
+                    requests, tokens_input, tokens_output, cost_usd, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(tenant_id, agent_id, period_key, period_type)
+                   DO UPDATE SET
+                     requests = requests + excluded.requests,
+                     tokens_input = tokens_input + excluded.tokens_input,
+                     tokens_output = tokens_output + excluded.tokens_output,
+                     cost_usd = cost_usd + excluded.cost_usd,
+                     updated_at = excluded.updated_at""",
+                (
+                    tenant_id,
+                    request.agent_id,
+                    period_key,
+                    period_type,
+                    request.requests,
+                    request.tokens_input,
+                    request.tokens_output,
+                    request.cost_usd,
+                    now.isoformat(),
+                ),
+            )
+        await self.db.commit()
+
+    async def get_budget_status(
+        self, agent_id: str, tenant_id: str
+    ) -> BudgetStatus:
+        """Get current budget status for an agent."""
+        now = _now()
+        hourly_key = now.strftime("%Y-%m-%dT%H")
+        daily_key = now.strftime("%Y-%m-%d")
+
+        # Get hourly usage
+        cursor = await self.db.execute(
+            """SELECT requests, tokens_input, tokens_output, cost_usd
+               FROM budget_consumption
+               WHERE tenant_id = ? AND agent_id = ? AND period_key = ? AND period_type = 'hourly'""",
+            (tenant_id, agent_id, hourly_key),
+        )
+        hourly_row = await cursor.fetchone()
+        hourly_usage = None
+        if hourly_row:
+            hourly_usage = BudgetPeriodUsage(
+                period=hourly_key,
+                requests=hourly_row["requests"],
+                tokens_input=hourly_row["tokens_input"],
+                tokens_output=hourly_row["tokens_output"],
+                cost_usd=hourly_row["cost_usd"],
+            )
+
+        # Get daily usage
+        cursor = await self.db.execute(
+            """SELECT requests, tokens_input, tokens_output, cost_usd
+               FROM budget_consumption
+               WHERE tenant_id = ? AND agent_id = ? AND period_key = ? AND period_type = 'daily'""",
+            (tenant_id, agent_id, daily_key),
+        )
+        daily_row = await cursor.fetchone()
+        daily_usage = None
+        if daily_row:
+            daily_usage = BudgetPeriodUsage(
+                period=daily_key,
+                requests=daily_row["requests"],
+                tokens_input=daily_row["tokens_input"],
+                tokens_output=daily_row["tokens_output"],
+                cost_usd=daily_row["cost_usd"],
+            )
+
+        # Get agent's budget limits
+        agent = await self.get_agent(agent_id, tenant_id)
+        limits = {}
+        if agent and agent.access_profile.budget:
+            budget = agent.access_profile.budget
+            limits = {
+                "max_requests_per_hour": budget.max_requests_per_hour,
+                "max_tokens_per_hour": budget.max_tokens_per_hour,
+                "max_cost_per_day_usd": budget.max_cost_per_day_usd,
+            }
+
+        status = BudgetStatus(
+            agent_id=agent_id,
+            hourly_usage=hourly_usage,
+            daily_usage=daily_usage,
+            **limits,
+        )
+        status.compute_status()
+        return status

@@ -206,10 +206,40 @@ class AgentRecord(BaseModel):
     first_seen_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class AgentList(BaseModel):
-    """Paginated list of agents."""
+class AgentRecordPublic(BaseModel):
+    """Agent record for read endpoints — api_token is REDACTED.
 
-    items: list[AgentRecord]
+    Token is only returned once on POST /registry/agents (creation).
+    """
+
+    id: str
+    name: str
+    description: str | None = None
+    platform: str
+    owner: AgentOwner
+    deployment: AgentDeployment | None = None
+    access_profile: AccessProfile = Field(default_factory=AccessProfile)
+    status: AgentStatus = AgentStatus.PENDING_APPROVAL
+    tags: list[str] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    source_system: str | None = None
+    external_id: str | None = None
+    discovery_method: DiscoveryMethod = DiscoveryMethod.MANUAL
+    tenant_id: str = "default"
+    registered_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    first_seen_at: datetime = Field(default_factory=datetime.utcnow)
+
+    @classmethod
+    def from_record(cls, record: AgentRecord) -> AgentRecordPublic:
+        """Create a public record from a full record, stripping the token."""
+        return cls.model_validate(record.model_dump(exclude={"api_token"}))
+
+
+class AgentList(BaseModel):
+    """Paginated list of agents (public — no tokens)."""
+
+    items: list[AgentRecordPublic]
     total: int
     page: int
     page_size: int
