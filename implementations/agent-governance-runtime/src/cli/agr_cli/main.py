@@ -5,11 +5,15 @@ Commands:
   agr list       — List registered agents
   agr get        — Get agent details
   agr audit      — Query audit trail
+  agr evaluate   — Evaluate an action against governance
+  agr policy     — Manage policies
   agr health     — Check server health
 """
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Optional
 
 import typer
@@ -34,9 +38,16 @@ _server_url_option = typer.Option(
     help="AGR server URL",
 )
 
+_token_option = typer.Option(
+    None,
+    "--token", "-t",
+    envvar="AGR_AGENT_TOKEN",
+    help="Agent API token (for authenticated operations)",
+)
 
-def _client(server_url: str) -> GovernanceClient:
-    return GovernanceClient(server_url=server_url)
+
+def _client(server_url: str, token: str | None = None) -> GovernanceClient:
+    return GovernanceClient(server_url=server_url, token=token)
 
 
 @app.command()
@@ -44,34 +55,39 @@ def register(
     agent_id: str = typer.Argument(help="Unique agent ID (kebab-case)"),
     name: str = typer.Option(..., "--name", "-n", help="Human-readable name"),
     platform: str = typer.Option(..., "--platform", "-p", help="Agent platform"),
-    archetype: str = typer.Option("executor", "--archetype", "-a", help="Agent archetype"),
     owner_team: str = typer.Option(..., "--owner", "-o", help="Owner team name"),
     owner_contact: str = typer.Option(..., "--contact", "-c", help="Owner contact email"),
     environment: Optional[str] = typer.Option(None, "--env", "-e", help="Deployment environment"),
     description: Optional[str] = typer.Option(None, "--description", "-d"),
+    profile: Optional[Path] = typer.Option(None, "--profile", help="Access profile JSON file"),
     tags: Optional[str] = typer.Option(None, "--tags", help="Comma-separated tags"),
     server_url: str = _server_url_option,
 ) -> None:
     """Register a new agent in the governance registry."""
-    gov = _client(server_url)
-    gov.agent_id = agent_id
+    gov = GovernanceClient(server_url=server_url, agent_id=agent_id)
     tag_list = [t.strip() for t in tags.split(",")] if tags else None
+    access_profile = None
+    if profile and profile.exists():
+        access_profile = json.loads(profile.read_text())
 
     try:
         record = gov.register(
             name=name,
             platform=platform,
-            archetype=archetype,
             owner_team=owner_team,
             owner_contact=owner_contact,
             environment=environment,
             description=description,
+            access_profile=access_profile,
             tags=tag_list,
         )
         rprint(f"[green]✓[/green] Agent [bold]{agent_id}[/bold] registered successfully")
-        rprint(f"  Status: {record['status']}")
-        rprint(f"  Archetype: {record['archetype']}")
+        rprint(f"  Status:   {record['status']}")
         rprint(f"  Platform: {record['platform']}")
+        token = record.get("api_token")
+        if token:
+            rprint(f"  Token:    [bold yellow]{token}[/bold yellow]")
+            rprint("  [dim]⚠ Save this token — it won't be shown again![/dim]")
     except Exception as e:
         rprint(f"[red]✗[/red] Registration failed: {e}")
         raise typer.Exit(1)
@@ -80,7 +96,6 @@ def register(
 @app.command(name="list")
 def list_agents(
     platform: Optional[str] = typer.Option(None, "--platform", "-p"),
-    archetype: Optional[str] = typer.Option(None, "--archetype", "-a"),
     status: Optional[str] = typer.Option(None, "--status"),
     search: Optional[str] = typer.Option(None, "--search", "-q"),
     server_url: str = _server_url_option,
@@ -90,8 +105,6 @@ def list_agents(
     filters = {}
     if platform:
         filters["platform"] = platform
-    if archetype:
-        filters["archetype"] = archetype
     if status:
         filters["status"] = status
     if search:
@@ -109,7 +122,6 @@ def list_agents(
         table.add_column("ID", style="bold")
         table.add_column("Name")
         table.add_column("Platform", style="cyan")
-        table.add_column("Archetype", style="magenta")
         table.add_column("Status", style="green")
         table.add_column("Owner")
 
@@ -124,7 +136,6 @@ def list_agents(
                 agent["id"],
                 agent["name"],
                 agent["platform"],
-                agent["archetype"],
                 status_style.get(agent["status"], agent["status"]),
                 agent["owner"]["team"],
             )
@@ -149,19 +160,63 @@ def get(
 
     rprint(f"\n[bold]{agent['name']}[/bold] ({agent['id']})")
     rprint(f"  Platform:    {agent['platform']}")
-    rprint(f"  Archetype:   {agent['archetype']}")
     rprint(f"  Status:      {agent['status']}")
     rprint(f"  Owner:       {agent['owner']['team']} ({agent['owner']['contact']})")
     rprint(f"  Registered:  {agent['registered_at']}")
     if agent.get("tags"):
         rprint(f"  Tags:        {', '.join(agent['tags'])}")
-    caps = agent.get("capabilities_granted", [])
-    if caps:
-        rprint(f"  Capabilities granted: {len(caps)}")
-        for c in caps:
-            rprint(f"    - {c['resource']}: {', '.join(c['actions'])}")
-    else:
-        rprint("  Capabilities granted: [dim]none[/dim]")
+
+    profile = agent.get("access_profile", {})
+    if profile:
+        rprint("\n  [bold]Access Profile:[/bold]")
+        if profile.get("mcps_allowed"):
+            rprint(f"    MCPs allowed: {', '.join(profile['mcps_allowed'])}")
+        if profile.get("mcps_denied"):
+            rprint(f"    MCPs denied:  {', '.join(profile['mcps_denied'])}")
+        if profile.get("skills_allowed"):
+            rprint(f"    Skills:       {', '.join(profile['skills_allowed'])}")
+        rprint(f"    Data max:     {profile.get('data_classification_max', 'internal')}")
+        actions = profile.get("actions", {})
+        if actions:
+            rprint("    Actions:")
+            for act, decision in actions.items():
+                icon = {"allow": "✅", "deny": "❌", "require_approval": "⏸️"}.get(decision, "?")
+                rprint(f"      {icon} {act} → {decision}")
+        budget = profile.get("budget")
+        if budget:
+            rprint("    Budget:")
+            for k, v in budget.items():
+                if v is not None:
+                    rprint(f"      {k}: {v}")
+
+
+@app.command()
+def evaluate(
+    action: str = typer.Argument(help="Action to evaluate (e.g. 'deploy.production')"),
+    agent_id: Optional[str] = typer.Option(None, "--agent", "-a", help="Agent ID"),
+    server_url: str = _server_url_option,
+    token: Optional[str] = _token_option,
+) -> None:
+    """Evaluate an action against governance policies."""
+    gov = _client(server_url, token=token)
+    if agent_id:
+        gov.agent_id = agent_id
+
+    try:
+        result = gov.evaluate(action)
+        decision = result["decision"]
+        icons = {"allow": "✅", "deny": "❌", "require_approval": "⏸️"}
+        rprint(f"\n{icons.get(decision, '?')} {action} → [bold]{decision}[/bold]")
+        rprint(f"  Reason: {result['reason']}")
+        if result.get("matched_rules"):
+            rprint(f"  Matched policies: {len(result['matched_rules'])}")
+            for rule in result["matched_rules"]:
+                rprint(f"    - {rule['policy_name']} ({rule['matched_pattern']} → {rule['decision']})")
+        if result.get("budget_status"):
+            rprint(f"  Budget: {result['budget_status']}")
+    except Exception as e:
+        rprint(f"[red]✗[/red] Evaluation failed: {e}")
+        raise typer.Exit(1)
 
 
 @app.command()

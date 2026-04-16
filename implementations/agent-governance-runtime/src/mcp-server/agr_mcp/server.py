@@ -6,11 +6,11 @@ connect to this MCP server and get governance tools:
   - agr_check_access   — Check if an action is allowed by policy
   - agr_get_profile    — Get the agent's access profile
   - agr_audit          — Log an audit record for an action
-  - agr_list_agents    — List registered agents (admin)
+  - agr_check_mcp      — Check if an MCP server is allowed
 
 Authentication: The agent provides its API token via the AGR_AGENT_TOKEN
-environment variable. The MCP server validates the token against the AGR API
-on every tool call — identity is transport-bound, not self-declared.
+environment variable. The MCP server calls the AGR server's /governance/evaluate
+endpoint for every decision — no stale cache, no local policy logic.
 
 Usage in .vscode/mcp.json::
 
@@ -43,78 +43,70 @@ AGR_AGENT_TOKEN = os.environ.get("AGR_AGENT_TOKEN", "")
 server = Server("agr-governance")
 _http = httpx.Client(base_url=AGR_SERVER_URL, timeout=10.0)
 
-# --- Cached agent profile (resolved from token) ---
-_agent_cache: dict | None = None
+# Minimal cached identity (just id + name, not full profile)
+_identity: dict | None = None
 
 
-def _resolve_agent() -> dict:
-    """Resolve agent identity from token. Cached per session."""
-    global _agent_cache
-    if _agent_cache is not None:
-        return _agent_cache
+def _resolve_identity() -> dict:
+    """Resolve agent identity from token via /auth/resolve. Cached per session."""
+    global _identity
+    if _identity is not None:
+        return _identity
 
     if not AGR_AGENT_TOKEN:
         return {"error": "AGR_AGENT_TOKEN not set. Register your agent and set the token."}
 
     resp = _http.get(
-        "/registry/agents",
-        params={"search": ""},
+        "/auth/resolve",
         headers={"Authorization": f"Bearer {AGR_AGENT_TOKEN}"},
     )
-    # For Phase 1, look up by iterating (token lookup endpoint would be better)
-    # In production, this would be a dedicated /auth/resolve endpoint
     if resp.status_code == 200:
-        for agent in resp.json().get("items", []):
-            if agent.get("api_token") == AGR_AGENT_TOKEN:
-                _agent_cache = agent
-                return agent
+        _identity = resp.json()
+        return _identity
 
-    return {"error": "Invalid token or agent not found. Register with: agr register"}
+    return {"error": f"Token resolution failed: {resp.status_code} {resp.text}"}
 
 
-def _check_access(action: str) -> dict:
-    """Check action against the agent's access profile. Server-side enforcement."""
-    agent = _resolve_agent()
-    if "error" in agent:
-        return {"decision": "deny", "reason": agent["error"]}
+def _auth_headers() -> dict[str, str]:
+    """Return auth headers for AGR API calls."""
+    if AGR_AGENT_TOKEN:
+        return {"Authorization": f"Bearer {AGR_AGENT_TOKEN}"}
+    return {}
 
-    if agent.get("status") != "active":
-        return {
-            "decision": "deny",
-            "reason": f"Agent status is '{agent.get('status')}', not 'active'",
-        }
 
-    profile = agent.get("access_profile", {})
-    actions = profile.get("actions", {})
+def _evaluate_action(action: str, resource: str | None = None) -> dict:
+    """Call /governance/evaluate — the single authoritative decision point."""
+    identity = _resolve_identity()
+    if "error" in identity:
+        return {"decision": "deny", "reason": identity["error"]}
 
-    # Exact match
-    if action in actions:
-        decision = actions[action]
-        return {"decision": decision, "reason": f"Policy: {action} → {decision}"}
+    body: dict = {
+        "agent_id": identity["id"],
+        "action": action,
+    }
+    if resource:
+        body["resource"] = resource
 
-    # Wildcard match (e.g. "deploy.*" matches "deploy.production")
-    parts = action.split(".")
-    for i in range(len(parts), 0, -1):
-        pattern = ".".join(parts[:i]) + ".*"
-        if pattern in actions:
-            decision = actions[pattern]
-            return {"decision": decision, "reason": f"Policy: {pattern} → {decision}"}
-
-    return {"decision": "allow", "reason": "No policy restriction"}
+    resp = _http.post(
+        "/governance/evaluate",
+        json=body,
+        headers=_auth_headers(),
+    )
+    if resp.status_code == 200:
+        return resp.json()
+    return {"decision": "deny", "reason": f"Evaluation failed: {resp.status_code} {resp.text}"}
 
 
 def _audit_log(action: str, result: str, **kwargs: str) -> dict:
-    """Log an audit record to the AGR server."""
-    agent = _resolve_agent()
-    agent_id = agent.get("id", "unknown")
-
+    """Log an audit record via the AGR server. Agent_id derived from token."""
+    identity = _resolve_identity()
     body = {
-        "agent_id": agent_id,
+        "agent_id": identity.get("id", "unknown"),
         "action": action,
         "result": result,
         **{k: v for k, v in kwargs.items() if v},
     }
-    resp = _http.post("/audit/records", json=body)
+    resp = _http.post("/audit/records", json=body, headers=_auth_headers())
     if resp.status_code == 201:
         return resp.json()
     return {"error": f"Audit failed: {resp.status_code} {resp.text}"}
@@ -132,7 +124,7 @@ async def list_tools() -> list[Tool]:
                 "Check if an action is allowed by the governance policy. "
                 "Call this BEFORE performing any action with side effects "
                 "(file writes, API calls, deployments, data modifications). "
-                "Returns: allow, deny, or require_approval."
+                "Returns: allow, deny, or require_approval with matched policies."
             ),
             inputSchema={
                 "type": "object",
@@ -217,39 +209,54 @@ async def list_tools() -> list[Tool]:
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
     if name == "agr_check_access":
-        result = _check_access(arguments["action"])
-
-        # Auto-audit the access check itself
-        _audit_log(
-            action=f"governance.check_access:{arguments['action']}",
-            result=result["decision"],
-            detail=result.get("reason", ""),
+        result = _evaluate_action(
+            arguments["action"],
+            resource=arguments.get("resource"),
         )
+        decision = result.get("decision", "deny")
 
-        if result["decision"] == "deny":
-            return [TextContent(
-                type="text",
-                text=f"❌ DENIED: {arguments['action']}\nReason: {result['reason']}\n\n"
-                     f"Do NOT proceed with this action. Inform the user it is blocked by policy.",
-            )]
-        elif result["decision"] == "require_approval":
-            return [TextContent(
-                type="text",
-                text=f"⏸️ APPROVAL REQUIRED: {arguments['action']}\nReason: {result['reason']}\n\n"
-                     f"This action requires human approval before proceeding. "
-                     f"Ask the user to approve explicitly.",
-            )]
+        if decision == "deny":
+            text = (
+                f"❌ DENIED: {arguments['action']}\n"
+                f"Reason: {result.get('reason', 'Policy violation')}\n\n"
+                f"Do NOT proceed with this action. Inform the user it is blocked by policy."
+            )
+        elif decision == "require_approval":
+            text = (
+                f"⏸️ APPROVAL REQUIRED: {arguments['action']}\n"
+                f"Reason: {result.get('reason', 'Requires approval')}\n\n"
+                f"This action requires human approval before proceeding. "
+                f"Ask the user to approve explicitly."
+            )
         else:
-            return [TextContent(
-                type="text",
-                text=f"✅ ALLOWED: {arguments['action']}\nYou may proceed with this action.",
-            )]
+            text = f"✅ ALLOWED: {arguments['action']}\nYou may proceed with this action."
+
+        # Add matched rules info if available
+        matched = result.get("matched_rules", [])
+        if matched:
+            text += f"\n\nMatched {len(matched)} policy rule(s):"
+            for rule in matched:
+                text += f"\n  - {rule['policy_name']} ({rule['matched_pattern']} → {rule['decision']})"
+
+        # Add budget info if present
+        if result.get("budget_status") and result["budget_status"] != "ok":
+            text += f"\n\n⚠️ Budget: {result['budget_status']}"
+            if result.get("budget_detail"):
+                text += f" — {result['budget_detail']}"
+
+        return [TextContent(type="text", text=text)]
 
     elif name == "agr_get_profile":
-        agent = _resolve_agent()
-        if "error" in agent:
-            return [TextContent(type="text", text=f"Error: {agent['error']}")]
+        identity = _resolve_identity()
+        if "error" in identity:
+            return [TextContent(type="text", text=f"Error: {identity['error']}")]
 
+        # Fetch the full agent profile via the registry
+        resp = _http.get(f"/registry/agents/{identity['id']}")
+        if resp.status_code != 200:
+            return [TextContent(type="text", text=f"Error: Could not fetch profile")]
+
+        agent = resp.json()
         profile = agent.get("access_profile", {})
         lines = [
             f"Agent: {agent['id']} ({agent['name']})",
@@ -272,6 +279,14 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         if not profile.get("actions"):
             lines.append("  (no explicit restrictions)")
 
+        budget = profile.get("budget")
+        if budget:
+            lines.append("")
+            lines.append("Budget limits:")
+            for k, v in budget.items():
+                if v is not None:
+                    lines.append(f"  {k}: {v}")
+
         return [TextContent(type="text", text="\n".join(lines))]
 
     elif name == "agr_audit":
@@ -290,11 +305,16 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         )]
 
     elif name == "agr_check_mcp":
-        agent = _resolve_agent()
-        if "error" in agent:
-            return [TextContent(type="text", text=f"Error: {agent['error']}")]
+        identity = _resolve_identity()
+        if "error" in identity:
+            return [TextContent(type="text", text=f"Error: {identity['error']}")]
 
-        profile = agent.get("access_profile", {})
+        # Fetch profile for MCP check
+        resp = _http.get(f"/registry/agents/{identity['id']}")
+        if resp.status_code != 200:
+            return [TextContent(type="text", text="Error: Could not fetch profile")]
+
+        profile = resp.json().get("access_profile", {})
         mcp = arguments["mcp_name"]
         denied = profile.get("mcps_denied", [])
         allowed = profile.get("mcps_allowed", [])
