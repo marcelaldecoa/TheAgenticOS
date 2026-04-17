@@ -1,0 +1,89 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agr.theagenticOS.dev/schemas/policies.schema.json",
+  "title": "AGR Policies File",
+  "description": "A collection of tenant-wide governance policy rules. Load with `agr policy load <file>` or via the SDK.",
+  "type": "object",
+  "required": ["policies"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference for editor support"
+    },
+    "policies": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PolicyRule" },
+      "description": "List of policy rules to create or update."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "PolicyRule": {
+      "type": "object",
+      "required": ["name", "condition", "decision"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "description": "Human-readable name for the policy rule."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of what this rule does and why."
+        },
+        "condition": {
+          "$ref": "#/$defs/PolicyCondition"
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["allow", "deny", "require_approval"],
+          "description": "What happens when the condition matches."
+        },
+        "priority": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000,
+          "default": 100,
+          "description": "Higher priority wins within the same effect level (0-10000)."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tags for organizing and filtering policies."
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Arbitrary metadata for the policy rule."
+        }
+      },
+      "additionalProperties": false
+    },
+    "PolicyCondition": {
+      "type": "object",
+      "required": ["action_pattern"],
+      "properties": {
+        "action_pattern": {
+          "type": "string",
+          "description": "Action pattern to match (e.g. 'deploy.production', 'deploy.*', '*')."
+        },
+        "platforms": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Only apply to agents on these platforms. Empty = all platforms."
+        },
+        "environments": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Only apply in these environments. Empty = all environments."
+        },
+        "data_classification_min": {
+          "type": "string",
+          "enum": ["public", "internal", "confidential", "restricted"],
+          "description": "Only apply when data classification meets or exceeds this level."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

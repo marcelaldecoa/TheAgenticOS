@@ -30,9 +30,11 @@ Usage::
 
 from __future__ import annotations
 
+import json
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Generator
 
 import httpx
@@ -139,6 +141,59 @@ class GovernanceClient:
         resp = self._client.post("/registry/agents", json=body)
         resp.raise_for_status()
         return resp.json()
+
+    def register_from_file(self, file_path: str | Path) -> dict[str, Any]:
+        """Register an agent from a JSON registration file.
+
+        The file must conform to the agent-registration.schema.json schema.
+        The agent_id is taken from the file's ``id`` field.
+
+        Returns the full agent record WITH api_token (shown only once).
+        """
+        path = Path(file_path)
+        data = json.loads(path.read_text(encoding="utf-8"))
+
+        # Strip $schema key before sending
+        data.pop("$schema", None)
+
+        # Set discovery method
+        data.setdefault("discovery_method", "sdk")
+
+        # Update agent_id from the file
+        self.agent_id = data.get("id", self.agent_id)
+
+        resp = self._client.post("/registry/agents", json=data)
+        resp.raise_for_status()
+        return resp.json()
+
+    @staticmethod
+    def load_profile(file_path: str | Path) -> dict[str, Any]:
+        """Load an access profile from a JSON file.
+
+        The file must conform to the access-profile.schema.json schema.
+        Returns a dict suitable for passing as ``access_profile`` to ``register()``.
+        """
+        path = Path(file_path)
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data.pop("$schema", None)
+        return data
+
+    def load_policies(self, file_path: str | Path) -> list[dict[str, Any]]:
+        """Load and create policy rules from a JSON policies file.
+
+        The file must conform to the policies.schema.json schema.
+        Returns the list of created policy records.
+        """
+        path = Path(file_path)
+        data = json.loads(path.read_text(encoding="utf-8"))
+        data.pop("$schema", None)
+
+        created = []
+        for rule in data.get("policies", []):
+            resp = self._client.post("/policies/rules", json=rule)
+            resp.raise_for_status()
+            created.append(resp.json())
+        return created
 
     def get_agent(self, agent_id: str | None = None) -> dict[str, Any] | None:
         """Get an agent record. Uses self.agent_id if not specified."""

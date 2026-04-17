@@ -1,0 +1,38 @@
+﻿{
+  "$schema": "../../schemas/access-profile.schema.json",
+  "mcps_allowed": [
+    "github-mcp",
+    "azure-mcp",
+    "database-mcp",
+    "docs-mcp"
+  ],
+  "mcps_denied": [
+    "payment-gateway-mcp",
+    "secrets-manager-mcp"
+  ],
+  "skills_allowed": [
+    "code-generation",
+    "test-generation",
+    "doc-generation",
+    "refactoring",
+    "dependency-analysis"
+  ],
+  "data_classification_max": "confidential",
+  "actions": {
+    "code.generate": "allow",
+    "code.refactor": "allow",
+    "test.generate": "allow",
+    "test.run": "allow",
+    "doc.generate": "allow",
+    "dependency.analyze": "allow",
+    "dependency.update": "require_approval",
+    "database.migrate": "require_approval",
+    "deploy.*": "deny",
+    "infra.*": "deny"
+  },
+  "budget": {
+    "max_requests_per_hour": 300,
+    "max_tokens_per_hour": 500000,
+    "max_cost_per_day_usd": 50.00
+  }
+}

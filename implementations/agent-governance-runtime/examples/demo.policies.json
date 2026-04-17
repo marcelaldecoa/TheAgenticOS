@@ -1,0 +1,35 @@
+﻿{
+  "$schema": "../schemas/policies.schema.json",
+  "policies": [
+    {
+      "name": "Block production deploys",
+      "description": "No agent can deploy directly to production without human intervention",
+      "condition": {
+        "action_pattern": "deploy.production"
+      },
+      "decision": "deny",
+      "priority": 1000,
+      "tags": ["safety", "production"]
+    },
+    {
+      "name": "Require approval for emails",
+      "description": "All email-sending actions require human approval",
+      "condition": {
+        "action_pattern": "email.*"
+      },
+      "decision": "require_approval",
+      "priority": 500,
+      "tags": ["communication"]
+    },
+    {
+      "name": "Allow knowledge base searches",
+      "description": "All agents can search the knowledge base",
+      "condition": {
+        "action_pattern": "knowledge.search"
+      },
+      "decision": "allow",
+      "priority": 100,
+      "tags": ["knowledge"]
+    }
+  ]
+}

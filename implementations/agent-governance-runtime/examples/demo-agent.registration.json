@@ -1,0 +1,34 @@
+﻿{
+  "$schema": "../schemas/agent-registration.schema.json",
+  "id": "demo-support-agent",
+  "name": "Demo Support Agent",
+  "description": "Customer support agent that answers questions and files tickets",
+  "platform": "custom",
+  "owner": {
+    "team": "support-engineering",
+    "contact": "support-eng@company.com"
+  },
+  "deployment": {
+    "environment": "development"
+  },
+  "access_profile": {
+    "mcps_allowed": ["knowledge-base-mcp", "ticketing-mcp"],
+    "mcps_denied": ["production-db"],
+    "skills_allowed": ["search-docs", "create-ticket"],
+    "data_classification_max": "confidential",
+    "actions": {
+      "knowledge.search": "allow",
+      "ticket.create": "allow",
+      "ticket.update": "allow",
+      "email.send": "require_approval",
+      "deploy.*": "deny"
+    },
+    "budget": {
+      "max_requests_per_hour": 100,
+      "max_tokens_per_hour": 50000,
+      "max_cost_per_day_usd": 5.00
+    }
+  },
+  "tags": ["support", "customer-facing", "demo"],
+  "discovery_method": "manual"
+}

@@ -1,0 +1,50 @@
+﻿{
+  "$schema": "../../schemas/policies.schema.json",
+  "policies": [
+    {
+      "name": "Production: require approval for all writes",
+      "description": "Any write operation in production requires human approval",
+      "condition": {
+        "action_pattern": "*.write",
+        "environments": ["production"]
+      },
+      "decision": "require_approval",
+      "priority": 900,
+      "tags": ["production", "safety"]
+    },
+    {
+      "name": "Production: deny destructive operations",
+      "description": "No agent can perform delete/destroy operations in production",
+      "condition": {
+        "action_pattern": "*.delete",
+        "environments": ["production"]
+      },
+      "decision": "deny",
+      "priority": 1000,
+      "tags": ["production", "safety"]
+    },
+    {
+      "name": "Production: deny infrastructure destruction",
+      "description": "No agent can destroy infrastructure in production",
+      "condition": {
+        "action_pattern": "infra.destroy",
+        "environments": ["production"]
+      },
+      "decision": "deny",
+      "priority": 1000,
+      "tags": ["production", "safety", "infrastructure"]
+    },
+    {
+      "name": "Production: restrict data classification",
+      "description": "Only agents with confidential clearance can operate on production data",
+      "condition": {
+        "action_pattern": "*",
+        "environments": ["production"],
+        "data_classification_min": "confidential"
+      },
+      "decision": "require_approval",
+      "priority": 500,
+      "tags": ["production", "data-governance"]
+    }
+  ]
+}

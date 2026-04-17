@@ -1,0 +1,34 @@
+﻿{
+  "$schema": "../../schemas/access-profile.schema.json",
+  "mcps_allowed": [
+    "github-mcp",
+    "azure-devops-mcp",
+    "docker-mcp",
+    "kubernetes-mcp"
+  ],
+  "mcps_denied": [
+    "production-db-mcp",
+    "secrets-manager-mcp",
+    "payment-gateway-mcp"
+  ],
+  "skills_allowed": [
+    "pipeline-management",
+    "container-ops",
+    "log-analysis"
+  ],
+  "data_classification_max": "internal",
+  "actions": {
+    "pipeline.trigger": "allow",
+    "pipeline.cancel": "allow",
+    "container.build": "allow",
+    "container.push": "require_approval",
+    "deploy.staging": "allow",
+    "deploy.production": "require_approval",
+    "infra.destroy": "deny"
+  },
+  "budget": {
+    "max_requests_per_hour": 100,
+    "max_tokens_per_hour": 50000,
+    "max_cost_per_day_usd": 15.00
+  }
+}
