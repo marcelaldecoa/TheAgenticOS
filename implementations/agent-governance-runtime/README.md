@@ -87,7 +87,9 @@ Every decision flows through one endpoint — `/governance/evaluate`:
 ## Platform Integrations
 
 | Platform | Method | Details |
-|----------|--------|---------|| **GitHub Copilot** | SDK + profiles + policies | [integrations/github-copilot/](integrations/github-copilot/) || **Claude Code** | MCP server + instructions | [integrations/claude-code/](integrations/claude-code/) |
+|----------|--------|---------|
+| **GitHub Copilot** | SDK + profiles + policies | [integrations/github-copilot/](integrations/github-copilot/) |
+| **Claude Code** | MCP server + instructions | [integrations/claude-code/](integrations/claude-code/) |
 | **N8N** | HTTP Request nodes | [integrations/n8n/](integrations/n8n/) |
 | **Custom Python** | SDK (`GovernanceClient`) | [src/sdk/](src/sdk/) |
 | **Any HTTP client** | REST API | `/docs` for OpenAPI |
