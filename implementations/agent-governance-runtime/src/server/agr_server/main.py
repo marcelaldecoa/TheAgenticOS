@@ -29,6 +29,7 @@ from agr_server.api import approvals as approvals_api
 from agr_server.api import dashboard as dashboard_api
 from agr_server.api import compliance as compliance_api
 from agr_server.config import settings
+from agr_server.middleware.gating import configure_gating
 from agr_server.store.sqlite import SQLiteStore
 
 store = SQLiteStore(db_path=settings.db_path)
@@ -71,6 +72,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Infrastructure-level gating (rate limiting, network, gateway, mTLS)
+configure_gating(app)
 
 app.include_router(registry_api.router)
 app.include_router(audit_api.router)

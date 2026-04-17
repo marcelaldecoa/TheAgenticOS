@@ -1,0 +1,106 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agr.theagenticOS.dev/schemas/agent-registration.schema.json",
+  "title": "AGR Agent Registration",
+  "description": "Full agent registration payload. Use with `agr register --from <file>` or via the SDK's `register_from_file()` method.",
+  "type": "object",
+  "required": ["id", "name", "platform", "owner"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference for editor support"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "minLength": 1,
+      "maxLength": 128,
+      "description": "Unique agent identifier (lowercase, kebab-case).",
+      "examples": ["copilot-code-reviewer", "n8n-customer-workflow"]
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Human-readable display name."
+    },
+    "description": {
+      "type": "string",
+      "description": "What this agent does."
+    },
+    "platform": {
+      "type": "string",
+      "description": "Agent platform.",
+      "examples": ["github-copilot", "copilot-studio", "claude-code", "n8n", "langchain", "openai", "custom"]
+    },
+    "owner": {
+      "$ref": "#/$defs/AgentOwner"
+    },
+    "deployment": {
+      "$ref": "#/$defs/AgentDeployment"
+    },
+    "access_profile": {
+      "$ref": "access-profile.schema.json",
+      "description": "Inline access profile. Alternatively, use a separate profile JSON file."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Tags for organizing and filtering agents."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Arbitrary metadata."
+    },
+    "discovery_method": {
+      "type": "string",
+      "enum": ["manual", "sdk", "mcp", "scan", "import"],
+      "default": "manual",
+      "description": "How this agent was discovered."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "AgentOwner": {
+      "type": "object",
+      "required": ["team", "contact"],
+      "properties": {
+        "team": {
+          "type": "string",
+          "description": "Team responsible for this agent."
+        },
+        "contact": {
+          "type": "string",
+          "format": "email",
+          "description": "Contact email for the owner."
+        },
+        "business_unit": {
+          "type": "string",
+          "description": "Business unit the team belongs to."
+        }
+      },
+      "additionalProperties": false
+    },
+    "AgentDeployment": {
+      "type": "object",
+      "required": ["environment"],
+      "properties": {
+        "environment": {
+          "type": "string",
+          "description": "Deployment environment (development, staging, production).",
+          "examples": ["development", "staging", "production"]
+        },
+        "region": {
+          "type": "string",
+          "description": "Deployment region."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Agent endpoint URL if applicable."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

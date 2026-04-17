@@ -1,0 +1,79 @@
+﻿{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agr.theagenticOS.dev/schemas/access-profile.schema.json",
+  "title": "AGR Access Profile",
+  "description": "Defines what an agent can access — MCP servers, skills, data classifications, action policies, and budget limits. Used with `agr register --profile <file>` or via the SDK.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema reference for editor support"
+    },
+    "mcps_allowed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "MCP servers this agent may use. Empty array means none allowed.",
+      "examples": [["github-mcp", "jira-mcp", "knowledge-base"]]
+    },
+    "mcps_denied": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Explicitly denied MCP servers. Takes precedence over mcps_allowed.",
+      "examples": [["production-db", "secrets-manager"]]
+    },
+    "skills_allowed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Skills (Copilot extensions) this agent may invoke.",
+      "examples": [["code-review", "test-generation", "doc-generation"]]
+    },
+    "data_classification_max": {
+      "type": "string",
+      "enum": ["public", "internal", "confidential", "restricted"],
+      "default": "internal",
+      "description": "Maximum data sensitivity level this agent can access."
+    },
+    "actions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["allow", "deny", "require_approval"]
+      },
+      "description": "Action patterns mapped to decisions. Supports wildcards (e.g. 'deploy.*': 'deny').",
+      "examples": [{
+        "file.read": "allow",
+        "file.write": "allow",
+        "deploy.*": "deny",
+        "email.send": "require_approval"
+      }]
+    },
+    "budget": {
+      "$ref": "#/$defs/BudgetLimit"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "BudgetLimit": {
+      "type": "object",
+      "description": "Resource consumption limits for the agent.",
+      "properties": {
+        "max_requests_per_hour": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of requests per hour. Hard-enforced."
+        },
+        "max_tokens_per_hour": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum total tokens (input + output) per hour. Soft limit."
+        },
+        "max_cost_per_day_usd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Maximum daily cost in USD. Soft limit."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,49 @@
+﻿{
+  "$schema": "../../schemas/policies.schema.json",
+  "policies": [
+    {
+      "name": "Block production deploys from Copilot agents",
+      "description": "No GitHub Copilot agent can deploy directly to production",
+      "condition": {
+        "action_pattern": "deploy.production",
+        "platforms": ["github-copilot"]
+      },
+      "decision": "deny",
+      "priority": 1000,
+      "tags": ["copilot", "safety", "production"]
+    },
+    {
+      "name": "Block secrets access",
+      "description": "Copilot agents must never access secret management systems",
+      "condition": {
+        "action_pattern": "secrets.*",
+        "platforms": ["github-copilot"]
+      },
+      "decision": "deny",
+      "priority": 1000,
+      "tags": ["copilot", "security"]
+    },
+    {
+      "name": "Require approval for infra changes",
+      "description": "Infrastructure changes from Copilot agents require human approval",
+      "condition": {
+        "action_pattern": "infra.*",
+        "platforms": ["github-copilot"]
+      },
+      "decision": "require_approval",
+      "priority": 900,
+      "tags": ["copilot", "infrastructure"]
+    },
+    {
+      "name": "Require approval for database migrations",
+      "description": "Database migrations from any Copilot agent require human approval",
+      "condition": {
+        "action_pattern": "database.migrate",
+        "platforms": ["github-copilot"]
+      },
+      "decision": "require_approval",
+      "priority": 800,
+      "tags": ["copilot", "database"]
+    }
+  ]
+}

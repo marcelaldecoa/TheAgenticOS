@@ -1,0 +1,32 @@
+﻿{
+  "$schema": "../../schemas/access-profile.schema.json",
+  "mcps_allowed": [
+    "github-mcp",
+    "sonarqube-mcp",
+    "jira-mcp"
+  ],
+  "mcps_denied": [
+    "production-db-mcp",
+    "secrets-manager-mcp"
+  ],
+  "skills_allowed": [
+    "code-review",
+    "test-generation",
+    "doc-generation"
+  ],
+  "data_classification_max": "confidential",
+  "actions": {
+    "code.review": "allow",
+    "code.suggest": "allow",
+    "code.commit": "require_approval",
+    "code.merge": "require_approval",
+    "repo.delete": "deny",
+    "secrets.*": "deny",
+    "deploy.*": "deny"
+  },
+  "budget": {
+    "max_requests_per_hour": 500,
+    "max_tokens_per_hour": 200000,
+    "max_cost_per_day_usd": 25.00
+  }
+}

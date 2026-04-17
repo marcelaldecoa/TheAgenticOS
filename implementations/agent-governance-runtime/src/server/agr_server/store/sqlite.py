@@ -178,7 +178,22 @@ class SQLiteStore(Store):
                 ON approvals(tenant_id, agent_id, status);
             """
         )
+
+        # Schema migrations for existing databases
+        await self._apply_migrations()
+
         await self._db.commit()
+
+    async def _apply_migrations(self) -> None:
+        """Apply incremental schema migrations for existing databases."""
+        # Check for api_token column in agents table
+        cursor = await self._db.execute("PRAGMA table_info(agents)")
+        columns = {row[1] for row in await cursor.fetchall()}
+        if "api_token" not in columns:
+            await self._db.execute("ALTER TABLE agents ADD COLUMN api_token TEXT")
+            await self._db.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_agents_token ON agents(api_token)"
+            )
 
     async def close(self) -> None:
         if self._db:

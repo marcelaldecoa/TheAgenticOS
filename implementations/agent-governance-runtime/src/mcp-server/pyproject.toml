@@ -13,6 +13,7 @@ dependencies = [
 
 [project.scripts]
 agr-mcp = "agr_mcp.server:main"
+agr-mcp-proxy = "agr_mcp.proxy:main"
 
 [build-system]
 requires = ["setuptools>=68"]
